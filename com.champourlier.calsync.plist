@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.champourlier.calsync</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/romain/Dev/+projects/calsync/scripts/run.sh</string>
+  </array>
+
+  <key>Nice</key>
+  <integer>1</integer>
+
+  <key>StartInterval</key>
+  <integer>7200</integer>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardErrorPath</key>
+  <string>/tmp/calsync.err</string>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/calsync.out</string>
+</dict>
+</plist>

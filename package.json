@@ -1,0 +1,28 @@
+{
+  "name": "calsync",
+  "version": "0.0.1",
+  "description": "synchronize from CalDAV to Google Calendar",
+  "main": "app.js",
+  "keywords": [
+    "caldav",
+    "nodejs",
+    "typescript"
+  ],
+  "author": "Romain Champourlier",
+  "scripts": {
+    "build": "tsc",
+    "app": "tsc && node --trace-warnings ./dist/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "googleapis": "^39",
+    "ical.js": "^1.1.2",
+    "moment": "^2.12.0",
+    "xml2js": "^0.4.17"
+  },
+  "devDependencies": {
+    "@types/node": "^12.0.8",
+    "typescript": "^3.5.2"
+  },
+  "license": "MIT"
+}
