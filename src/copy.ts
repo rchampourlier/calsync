@@ -40,7 +40,7 @@ export async function CalDavToGCal(caldav: CalDavDescriptor, gcal: GCalDescripto
         continue;
       }
 
-      const summary = caldav.redactedSummary && evt.summary.includes(config.FORCE_SHARING_SIGN) ? evt.summary : caldav.redactedSummary;
+      const summary = caldav.redactedSummary === undefined || evt.summary.includes(config.FORCE_SHARING_SIGN) ? evt.summary : caldav.redactedSummary
       if (LOG_DETAIL) log('Will copy event "' + summary + '" (' + evt.startDate.toISOString() + ')')
 
       const newEvt = {
@@ -117,6 +117,7 @@ export async function GCalToGCal(gcal: GCalDescriptor, gcalTarget: GCalDescripto
 
     const newEvents = [];
     for (const evt of sourceEvents) {
+      const summary = gcal.redactedSummary === undefined || evt.summary.includes(config.FORCE_SHARING_SIGN) ? evt.summary : gcal.redactedSummary
       const newEvt = {
         summary: evt.summary,
         start: evt.start,
