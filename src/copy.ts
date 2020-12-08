@@ -15,7 +15,6 @@ function formatDate(date: Date): string {
   const month = date.getMonth() + 1;
   const day = date.getDate();
   const str = `${year}-${pad(month)}-${pad(day)}`;
-  clog(`${date} -> ${str}`);
   return str;
 }
 
