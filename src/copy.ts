@@ -5,8 +5,6 @@ import * as cd from "./caldav/caldav";
 import * as gc from "./gcal/gcal";
 import { log as clog } from "./log";
 
-const LOG_DETAIL = false;
-
 function formatDate(date: Date): string {
   function pad(n: number): string {
     return (n <= 9 ? `0${n}` : `${n}`);
@@ -27,7 +25,7 @@ export async function CalDavToGCal(caldav: CalDavDescriptor, gcal: GCalDescripto
     const sourceEvents = await cd.ListUpcomingEvents(caldav);
     log('Fetched all events');
 
-    let newEvents = [];
+    const newEvents = [];
     for (const evt of sourceEvents) {
       const forceSharing = evt.summary.includes(config.FORCE_SHARING_SIGN);
       const markedFree = evt.iCalendarData.includes('TRANSP:TRANSPARENT');
@@ -40,7 +38,7 @@ export async function CalDavToGCal(caldav: CalDavDescriptor, gcal: GCalDescripto
       }
 
       const summary = caldav.redactedSummary === undefined || evt.summary.includes(config.FORCE_SHARING_SIGN) ? evt.summary : caldav.redactedSummary
-      if (LOG_DETAIL) log('Will copy event "' + summary + '" (' + evt.startDate.toISOString() + ')')
+      if (config.LOG_DETAIL) log(`Will copy event "${summary}" (${evt.startDate.toISOString()}`)
 
       const newEvt = {
         'summary': summary,
@@ -77,7 +75,7 @@ export async function GCalToCalDav(gcal: GCalDescriptor, caldav: CalDavDescripto
       evt.recurringEventId;
 
       const summary = gcal.redactedSummary && evt.summary.includes(config.FORCE_SHARING_SIGN) ? evt.summary : gcal.redactedSummary;
-      if (LOG_DETAIL) log(`Will copy event "${summary}" (${evt.start.date ? evt.start.date : evt.start.dateTime})`);
+      if (config.LOG_DETAIL) log(`Will copy event "${summary}" (${evt.start.date ? evt.start.date : evt.start.dateTime})`);
 
       const newEvt: CalendarEvent = {
         uid: evt.recurringEventId ? `${evt.iCalUID}_${recurringUniqueIndex++}` : evt.iCalUID, // trick to have several events for a recurring one
@@ -117,12 +115,13 @@ export async function GCalToGCal(gcal: GCalDescriptor, gcalTarget: GCalDescripto
     const newEvents = [];
     for (const evt of sourceEvents) {
       const summary = gcal.redactedSummary === undefined || evt.summary.includes(config.FORCE_SHARING_SIGN) ? evt.summary : gcal.redactedSummary
+      if (config.LOG_DETAIL) log(`Will copy event "${summary}" (${evt.start.date ? evt.start.date : evt.start.dateTime})`);
+
       const newEvt = {
-        summary: evt.summary,
+        summary: summary,
         start: evt.start,
         end: evt.end
       };
-      if (LOG_DETAIL) log(`Will copy event "${evt.summary}" (${evt.start.date ? evt.start.date : evt.start.dateTime})`);
       newEvents.push(newEvt);
     }
 

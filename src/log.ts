@@ -1,4 +1,4 @@
-const Version = '1.0.0'
+const Version = '1.0.2'
 
 export function log(msg: string, ...args: any[]) {
   if (args.length > 0) console.log(`v${Version} -- ${(new Date()).toISOString()} -- ${msg}`, ...args)
