@@ -1,11 +1,11 @@
 import { CalendarClient } from './calendar-client';
-import { CalDavDescriptor } from '../config';
+import { CalDavDescriptor, LOG_DETAIL } from '../config';
 import { CalendarEvent } from './calendar-event';
-import { log } from "../log"
+import { log, logWithEvent } from "../log"
 
 const THROTTLING_DELAY = 100;
 function throttlingDelay() {
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     setTimeout(() => {
       resolve();
     }, THROTTLING_DELAY);
@@ -18,7 +18,7 @@ export const ListUpcomingEvents = (calDesc: CalDavDescriptor): Promise<CalendarE
 }
 
 export const DeleteUpcomingEvents = (calDesc: CalDavDescriptor) => {
-  return new Promise(async (resolve, reject) => {
+  return new Promise<void>(async (resolve, reject) => {
     const calendarClient = new CalendarClient(calDesc.url, calDesc.username, calDesc.password);
     
     ListUpcomingEvents(calDesc)
@@ -30,6 +30,7 @@ export const DeleteUpcomingEvents = (calDesc: CalDavDescriptor) => {
       for (const evt of events) {
         try {
           await calendarClient.removeEvent(evt);
+          if (LOG_DETAIL) logWithEvent('Deleted', evt);
           await throttlingDelay();
         }
         catch (err) {
@@ -45,15 +46,16 @@ export const DeleteUpcomingEvents = (calDesc: CalDavDescriptor) => {
 }
 
 export const InsertOrUpdateEvents = (calDesc: CalDavDescriptor, events: CalendarEvent[]) => {
-  return new Promise(async (resolve, reject) => {
+  return new Promise<void>(async (resolve, reject) => {
     const calendarClient = new CalendarClient(calDesc.url, calDesc.username, calDesc.password);
     for (const evt of events) {
       try {
         await calendarClient.addOrUpdateEvent(evt);
         await throttlingDelay();
+        if (LOG_DETAIL) logWithEvent(`Inserted`, evt);
       }
       catch (err) {
-        log(`Error inserting event "${evt.summary} (${evt.startDate.toISOString()})": ${err}\n%O`, evt);
+        log(`Error inserting event "${evt.summary} (${evt.startDate.toISOString()})": ${err}\n`);
       }
     }
     resolve();

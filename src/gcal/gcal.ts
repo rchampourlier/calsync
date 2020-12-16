@@ -1,8 +1,8 @@
 import fs from "fs";
 import readline from "readline";
 import { google, calendar_v3 } from "googleapis";
-import { GCalDescriptor } from "../config";
-import { log } from "../log"
+import { GCalDescriptor, LOG_DETAIL } from "../config";
+import { log, logWithEvent } from "../log"
 
 // If modifying these scopes, delete token.json.
 const SCOPES = [
@@ -16,7 +16,7 @@ const TOKEN_PATH = 'token.json';
 
 const THROTTLING_DELAY = 300; // ms, Google API limit is 10 requests per second
 function throttlingDelay() {
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     setTimeout(() => {
       resolve();
     }, THROTTLING_DELAY);
@@ -118,8 +118,8 @@ function getAccessToken(oAuth2Client, callback) {
  * @param resolve 
  * @param reject 
  */
-function insertEvents(auth, calendarId: string, events: Array<calendar_v3.Schema$Event>) {
-  return new Promise(async (resolve, reject) => {
+function insertEvents(auth: any, calendarId: string, events: Array<calendar_v3.Schema$Event>) {
+  return new Promise<void>(async (resolve, reject) => {
     const calendar = google.calendar({version: 'v3', auth});
 
     for (const evt of events) {
@@ -128,10 +128,11 @@ function insertEvents(auth, calendarId: string, events: Array<calendar_v3.Schema
           calendarId: calendarId,
           requestBody: evt
         });
+        if (LOG_DETAIL) logWithEvent(`Inserted`, evt);
         await throttlingDelay();
       }
       catch (err) {
-        log(`Error inserting event "${evt.summary} (${evt.start.date ? evt.start.date : evt.start.dateTime})": ${err}\n%O`, evt);
+        log(`Error inserting event "${evt.summary} (${evt.start.date ? evt.start.date : evt.start.dateTime})": ${err}\n`);
       }
     }
     resolve();
@@ -145,7 +146,7 @@ function insertEvents(auth, calendarId: string, events: Array<calendar_v3.Schema
  * @returns Promise<unknown>
  */
 function deleteUpcomingEvents(auth, calendarId: string) {
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     const calendar = google.calendar({version: 'v3', auth});
 
     listUpcomingEvents(auth, calendarId)
@@ -160,6 +161,7 @@ function deleteUpcomingEvents(auth, calendarId: string) {
             calendarId: calendarId,
             eventId: evt.id
           });
+          if (LOG_DETAIL) logWithEvent('Deleted', evt);
           await throttlingDelay();
         }
         catch (err) {
