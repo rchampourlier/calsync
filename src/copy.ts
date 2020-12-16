@@ -3,7 +3,7 @@ import { CalDavDescriptor, GCalDescriptor } from './config';
 import { CalendarEvent } from './caldav/calendar-event';
 import * as cd from "./caldav/caldav";
 import * as gc from "./gcal/gcal";
-import { log as clog } from "./log";
+import { log as clog, logWithEvent } from "./log";
 
 function formatDate(date: Date): string {
   function pad(n: number): string {
@@ -38,8 +38,6 @@ export async function CalDavToGCal(caldav: CalDavDescriptor, gcal: GCalDescripto
       }
 
       const summary = caldav.redactedSummary === undefined || evt.summary.includes(config.FORCE_SHARING_SIGN) ? evt.summary : caldav.redactedSummary
-      if (config.LOG_DETAIL) log(`Will copy event "${summary}" (${evt.startDate.toISOString()}`)
-
       const newEvt = {
         'summary': summary,
         'start': (evt.allDayEvent ?
@@ -114,9 +112,18 @@ export async function GCalToGCal(gcal: GCalDescriptor, gcalTarget: GCalDescripto
 
     const newEvents = [];
     for (const evt of sourceEvents) {
-      const summary = gcal.redactedSummary === undefined || evt.summary.includes(config.FORCE_SHARING_SIGN) ? evt.summary : gcal.redactedSummary
-      if (config.LOG_DETAIL) log(`Will copy event "${summary}" (${evt.start.date ? evt.start.date : evt.start.dateTime})`);
+      // Ignoring "transparent" events (marked as free)
+      const forceSharing = evt.summary.includes(config.FORCE_SHARING_SIGN);
+      const markedFree = evt.transparency && evt.transparency === 'transparent';
 
+      if (!forceSharing && markedFree) {
+        // Event is marked "free" (instead of "busy"), so
+        // it may be ignored.
+        logWithEvent('Ignore event', evt);
+        continue;
+      }
+
+      const summary = gcal.redactedSummary === undefined || evt.summary.includes(config.FORCE_SHARING_SIGN) ? evt.summary : gcal.redactedSummary
       const newEvt = {
         summary: summary,
         start: evt.start,
