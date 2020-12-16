@@ -14,7 +14,7 @@ async function main() {
   // This copy makes private events (in several CalDAVs) visible
   // through a shareable Google calendar.
   for (const calId in config.CALDAV_MIRRORED_CALS) {
-    copy.CalDavToGCal(config.CALDAV_MIRRORED_CALS[calId], config.GCAL_MIRROR_TARGET);
+    await copy.CalDavToGCal(config.CALDAV_MIRRORED_CALS[calId], config.GCAL_MIRROR_TARGET);
   }
 
   // GCal -> GCal
@@ -22,7 +22,7 @@ async function main() {
   // calendar to be visible on the mirror which serves to determine
   // availability.
   for (const calId in config.GCAL_MIRRORED_CALS) {
-    copy.GCalToGCal(config.GCAL_MIRRORED_CALS[calId], config.GCAL_MIRROR_TARGET);
+    await copy.GCalToGCal(config.GCAL_MIRRORED_CALS[calId], config.GCAL_MIRROR_TARGET);
   }
 }
 

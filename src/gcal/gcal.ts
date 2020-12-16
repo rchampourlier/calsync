@@ -14,7 +14,7 @@ const SCOPES = [
 // time.
 const TOKEN_PATH = 'token.json';
 
-const THROTTLING_DELAY = 300; // ms, Google API limit is 10 requests per second
+const THROTTLING_DELAY = 200; // ms, Google API limit is 10 requests per second
 function throttlingDelay() {
   return new Promise<void>((resolve, reject) => {
     setTimeout(() => {
