@@ -1,20 +1,16 @@
+/**
+ * This modules implements copying event from a
+ * GCal to a CalDav and vice-versa.
+ * 
+ * TODO: handle recurrence
+ */
 import * as config from './config';
 import { CalDavDescriptor, GCalDescriptor } from './config';
-import { CalendarEvent } from './caldav/calendar-event';
 import * as cd from "./caldav/caldav";
 import * as gc from "./gcal/gcal";
 import { log as clog, logWithEvent } from "./log";
-
-function formatDate(date: Date): string {
-  function pad(n: number): string {
-    return (n <= 9 ? `0${n}` : `${n}`);
-  }
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const str = `${year}-${pad(month)}-${pad(day)}`;
-  return str;
-}
+import * as rules from './rules';
+import { MapEventCalDavToGCal, MapEventGCalToCalDav, MapEventGCalToGCal } from './eventMapping';
 
 export async function CalDavToGCal(caldav: CalDavDescriptor, gcal: GCalDescriptor) {
   function log(msg: string) {
@@ -27,26 +23,16 @@ export async function CalDavToGCal(caldav: CalDavDescriptor, gcal: GCalDescripto
 
     const newEvents = [];
     for (const evt of sourceEvents) {
-      const forceSharing = evt.summary.includes(config.FORCE_SHARING_SIGN);
       const markedFree = evt.iCalendarData.includes('TRANSP:TRANSPARENT');
 
-      if (!forceSharing && markedFree) {
-        // Event is marked "free" (instead of "busy"), so
-        // it may be ignored.
-        log('Ignore event "' + evt.summary + '" (' + evt.startDate.toISOString() + ')');
+      if (!rules.ShouldCopy(evt.summary, markedFree)) {
+        logWithEvent('Ignore event', evt);
         continue;
-      }
-
-      const summary = caldav.redactedSummary === undefined || evt.summary.includes(config.FORCE_SHARING_SIGN) ? evt.summary : caldav.redactedSummary
-      const newEvt = {
-        'summary': summary,
-        'start': (evt.allDayEvent ?
-          { 'date': formatDate(evt.startDate) } : // yyyy-mm-dd format
-          { 'dateTime': evt.startDate.toISOString() }),
-        'end': (evt.allDayEvent ?
-          { 'date': formatDate(evt.endDate) } : // yyyy-mm-dd format
-          { 'dateTime': evt.endDate.toISOString() })
       };
+
+      const newSummary = rules.NewSummary(evt.summary, caldav.redactedSummary);
+      const newEvt = MapEventCalDavToGCal(evt);
+      newEvt.summary = newSummary;
       newEvents.push(newEvt);
     }
 
@@ -68,31 +54,16 @@ export async function GCalToCalDav(gcal: GCalDescriptor, caldav: CalDavDescripto
     log('Fetched all events');
 
     const newEvents = [];
-    let recurringUniqueIndex = 0;
     for (const evt of sourceEvents) {
-      evt.recurringEventId;
+      if (config.LOG_DETAIL) logWithEvent('Will copy', evt);
 
-      const summary = gcal.redactedSummary && evt.summary.includes(config.FORCE_SHARING_SIGN) ? evt.summary : gcal.redactedSummary;
-      if (config.LOG_DETAIL) log(`Will copy event "${summary}" (${evt.start.date ? evt.start.date : evt.start.dateTime})`);
-
-      const newEvt: CalendarEvent = {
-        uid: evt.recurringEventId ? `${evt.iCalUID}_${recurringUniqueIndex++}` : evt.iCalUID, // trick to have several events for a recurring one
-        summary: evt.summary,
-        description: '',
-        location: evt.location,
-        startDate: new Date(evt.start.dateTime || evt.start.date),
-        endDate: new Date(evt.end.dateTime || evt.end.date),
-        tzid: 'Europe/Berlin',
-        allDayEvent: false,
-        iCalendarData: undefined // we must provided a value, but undefined will ensure it's build by the library
-      };
-      // TODO: handle recurrence
+      const newEvt = MapEventGCalToCalDav(evt);
+      const newSummary = rules.NewSummary(evt.summary, gcal.redactedSummary);
+      newEvt.summary = newSummary;
       newEvents.push(newEvt);
     }
 
-    /**
-     * Mirroring events from GCal mirrored to CalDAV mirror target
-     */
+    // Mirroring events from GCal mirrored to CalDAV mirror target
     await cd.InsertOrUpdateEvents(caldav, newEvents);
     log('Copied all events');
   }
@@ -112,29 +83,19 @@ export async function GCalToGCal(gcal: GCalDescriptor, gcalTarget: GCalDescripto
 
     const newEvents = [];
     for (const evt of sourceEvents) {
-      // Ignoring "transparent" events (marked as free)
-      const forceSharing = evt.summary.includes(config.FORCE_SHARING_SIGN);
       const markedFree = evt.transparency && evt.transparency === 'transparent';
-
-      if (!forceSharing && markedFree) {
-        // Event is marked "free" (instead of "busy"), so
-        // it may be ignored.
+      if (!rules.ShouldCopy(evt.summary, markedFree)) {
         logWithEvent('Ignore event', evt);
         continue;
-      }
-
-      const summary = gcal.redactedSummary === undefined || evt.summary.includes(config.FORCE_SHARING_SIGN) ? evt.summary : gcal.redactedSummary
-      const newEvt = {
-        summary: summary,
-        start: evt.start,
-        end: evt.end
       };
+
+      const newEvt = MapEventGCalToGCal(evt);
+      const newSummary = rules.NewSummary(evt.summary, gcal.redactedSummary);
+      newEvt.summary = newSummary;
       newEvents.push(newEvt);
     }
 
-    /**
-     * Mirroring events from GCal mirrored to CalDAV mirror target
-     */
+    // Mirroring events from GCal mirrored to CalDAV mirror target
     await gc.InsertEvents(config.GCAL_MIRROR_TARGET, newEvents);
     log('Copied all events');
   }
