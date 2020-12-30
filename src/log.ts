@@ -1,22 +1,19 @@
 import { calendar_v3 } from "googleapis"
 import { CalendarEvent } from "./caldav/calendar-event"
+import { isCalDAVEvent, isGCalEvent } from "./events";
 
-const Version = '1.0.5';
+const Version = '1.1.0';
 
 function prefix(): string {
   return `v${Version} -- ${(new Date()).toISOString()} -- `;
 }
 
 function eventStr(event: calendar_v3.Schema$Event | CalendarEvent): string {
-  if (Object.keys(event).includes('start')) {
-    // GCal event
-    const evt = event as calendar_v3.Schema$Event;
-    return `"${evt.summary}" (${evt.start.date ? evt.start.date : evt.start.dateTime})`;
+  if (isGCalEvent(event)) {
+    return `"${event.summary}" #${event.iCalUID} (${event.start.date ? event.start.date : event.start.dateTime})`;
   }
-  else {
-    // CalDAV event
-    const evt = event as CalendarEvent;
-    return `"${evt.summary}" (${evt.startDate.toISOString()})`;
+  else if (isCalDAVEvent(event)) {
+    return `"${event.summary}" #${event.uid} (${event.startDate.toISOString()})`;
   }
 }
 

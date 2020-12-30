@@ -3,6 +3,7 @@ import readline from "readline";
 import { google, calendar_v3 } from "googleapis";
 import { GCalDescriptor, LOG_DETAIL } from "../config";
 import { log, logWithEvent } from "../log"
+import { GCalEvent } from "../events";
 
 // If modifying these scopes, delete token.json.
 const SCOPES = [
@@ -47,12 +48,36 @@ export const DeleteUpcomingEvents = (gcal: GCalDescriptor) => {
   });
 };
 
+export const DeleteEvents = (gcal: GCalDescriptor, events: GCalEvent[]) => {
+  return new Promise((resolve, reject) => {
+    fs.readFile('credentials.json', (err, content) => {
+      if (err) return log(`Error loading client secret file: ${err}`);
+      authorize(JSON.parse(content.toString()), (oauth) => { 
+        deleteEvents(oauth, gcal.id, events)
+        .then(resolve).catch(reject);
+      });
+    });
+  });
+};
+
 export const InsertEvents = (gcal: GCalDescriptor, events: Array<calendar_v3.Schema$Event>) => {
   return new Promise((resolve, reject) => {
     fs.readFile('credentials.json', (err, content) => {
       if (err) return log(`Error loading client secret file: ${err}`);
       authorize(JSON.parse(content.toString()), (oauth) => { 
         insertEvents(oauth, gcal.id, events)
+        .then(resolve).catch(reject);
+      });
+    });
+  });
+};
+
+export const UpdateEvents = (gcal: GCalDescriptor, events: Array<calendar_v3.Schema$Event>) => {
+  return new Promise((resolve, reject) => {
+    fs.readFile('credentials.json', (err, content) => {
+      if (err) return log(`Error loading client secret file: ${err}`);
+      authorize(JSON.parse(content.toString()), (oauth) => { 
+        updateEvents(oauth, gcal.id, events)
         .then(resolve).catch(reject);
       });
     });
@@ -123,6 +148,7 @@ function insertEvents(auth: any, calendarId: string, events: Array<calendar_v3.S
     const calendar = google.calendar({version: 'v3', auth});
 
     for (const evt of events) {
+      evt.id = undefined; // Since we insert, we should not set `id`.
       try {
         await calendar.events.insert({
           calendarId: calendarId,
@@ -138,6 +164,28 @@ function insertEvents(auth: any, calendarId: string, events: Array<calendar_v3.S
     resolve();
   });
 };
+
+function updateEvents(auth: any, calendarId: string, events: Array<calendar_v3.Schema$Event>) {
+  return new Promise<void>(async (resolve, reject) => {
+    const calendar = google.calendar({version: 'v3', auth});
+
+    for (const evt of events) {
+      try {
+        await calendar.events.update({
+          calendarId: calendarId,
+          requestBody: evt
+        });
+        if (LOG_DETAIL) logWithEvent(`Inserted`, evt);
+        await throttlingDelay();
+      }
+      catch (err) {
+        log(`Error inserting event "${evt.summary} (${evt.start.date ? evt.start.date : evt.start.dateTime})": ${err}\n`);
+      }
+    }
+    resolve();
+  });
+};
+
 
 /**
  * Deletes all upcoming events on the specified calendar. Returns a `Promise`.
@@ -173,6 +221,27 @@ function deleteUpcomingEvents(auth, calendarId: string) {
     .catch((err) => {
       reject(`Error fetching upcoming events: ${err}`);
     });
+  });
+}
+
+function deleteEvents(auth, calendarId: string, events: GCalEvent[]) {
+  return new Promise<void>(async (resolve, reject) => {
+    const calendar = google.calendar({version: 'v3', auth});
+
+    for (const evt of events) {
+      try {
+        await calendar.events.delete({
+          calendarId: calendarId,
+          eventId: evt.id
+        });
+        if (LOG_DETAIL) logWithEvent('Deleted', evt);
+        await throttlingDelay();
+      }
+      catch (err) {
+        reject(`Error deleting event "${evt.summary}" (${evt.start.date ? evt.start.date : evt.start.dateTime})": ${err}\n${evt}`);
+      }
+    }
+    resolve();
   });
 }
 

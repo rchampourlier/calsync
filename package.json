@@ -1,7 +1,7 @@
 {
   "name": "calsync",
-  "version": "0.0.1",
-  "description": "synchronize from CalDAV to Google Calendar",
+  "version": "1.1.0",
+  "description": "Synchronizes between CalDAV and Google Calendar",
   "main": "app.js",
   "keywords": [
     "caldav",
