@@ -148,17 +148,16 @@ function insertEvents(auth: any, calendarId: string, events: Array<calendar_v3.S
     const calendar = google.calendar({version: 'v3', auth});
 
     for (const evt of events) {
-      evt.id = undefined; // Since we insert, we should not set `id`.
       try {
+        await throttlingDelay(); // throttling is done before the call, otherwise calls failing in sequence would break the rate limit
         await calendar.events.insert({
           calendarId: calendarId,
           requestBody: evt
         });
         if (LOG_DETAIL) logWithEvent(`Inserted`, evt);
-        await throttlingDelay();
       }
       catch (err) {
-        log(`Error inserting event "${evt.summary} (${evt.start.date ? evt.start.date : evt.start.dateTime})": ${err}\n`);
+        logWithEvent('Error inserting event', evt);
       }
     }
     resolve();
@@ -173,13 +172,14 @@ function updateEvents(auth: any, calendarId: string, events: Array<calendar_v3.S
       try {
         await calendar.events.update({
           calendarId: calendarId,
+          eventId: 
           requestBody: evt
         });
         if (LOG_DETAIL) logWithEvent(`Inserted`, evt);
         await throttlingDelay();
       }
       catch (err) {
-        log(`Error inserting event "${evt.summary} (${evt.start.date ? evt.start.date : evt.start.dateTime})": ${err}\n`);
+        logWithEvent('Error updating event', evt);
       }
     }
     resolve();

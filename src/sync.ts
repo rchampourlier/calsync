@@ -1,16 +1,14 @@
-import { CalDAVEvent, CalendarEvent, checkMappedEquality, GCalEvent, isCalDAVEvent, isGCalEvent, mapEventToMatchingCal, matchingCopy } from './events';
+import { CalendarEvent, CalendarEventData, compareEventsData, eventDataToGCalEvent, extractEventData, extractGCalEventData, GCalEvent, isCalDAVEvent, isGCalEvent } from './events';
 
-export type SyncInstructions = {
-  insert: CalendarEvent[],
-  update: CalendarEvent[],
-  delete: CalendarEvent[]
+ export type ToGCalInstructions = {
+  insert: CalendarEventData[],
+  update: { eventId: string, eventData: CalendarEventData }[],
+  delete: string[]
 };
 
 /**
  * Returns instructions to perform a synchronisation between
  * sources' events and target's ones. 
- * 
- * Should be agnostic of the target's calendar type.
  * 
  * Algorithm:
  *   - Make a map of both sourcesEvents and targetEvents on UID key
@@ -20,57 +18,65 @@ export type SyncInstructions = {
  * @param sourcesEvents
  * @param targetEvents 
  */
-export function GetInstructions(sourcesEvents: CalendarEvent[], targetEvents: CalendarEvent[]): SyncInstructions {
-  const [eventsInsert, eventsUpdate, eventsDelete] = [[], [], []];
+export function ToGCal(sourcesEvents: CalendarEvent[], targetEvents: GCalEvent[]): ToGCalInstructions {
+  const eventsInsert: CalendarEventData[] = [];
+  const eventsUpdate: { eventId: string, eventData: CalendarEventData }[] = [];
+  const eventsDelete: string[] = [];
 
   if (sourcesEvents.length === 0) return {
     insert: [],
     update: [],
-    delete: targetEvents
+    delete: targetEvents.map((e) => e.id)
   }
 
   if (targetEvents.length === 0) return {
-    insert: sourcesEvents,
+    insert: sourcesEvents.map((e) => {
+      const srcId = (() => {
+        if (isGCalEvent(e)) return e.id;
+        if (isCalDAVEvent(e)) return e.uid;
+      })();
+      const newEvtData: CalendarEventData = extractEventData(e);
+      newEvtData.description = `Original ID: ${srcId}`;
+      return newEvtData;
+    }),
     update: [],
     delete: []
   }
 
-  let targetEventsMap: { [key: string]: CalendarEvent } = {};
-  for (const evt of targetEvents) {
-    if (isGCalEvent(evt)) {
-      targetEventsMap[evt.iCalUID] = evt;
-    } else if (isCalDAVEvent(evt)) {
-      targetEventsMap[evt.uid] = evt;
-    }
-  }
+  const markedTargetEventIds: string[] = []; // ids of target events matched with sources events (missing are deleted)
 
-  const markedTargetEvents: CalendarEvent[] = [];
   for (const srcEvt of sourcesEvents) {
-    const srcEvtUID = (() => {
-      if (isGCalEvent(srcEvt)) return srcEvt.iCalUID;
+    const srcEvtData = extractEventData(srcEvt);
+    const matchingId = (() => {
+      if (isGCalEvent(srcEvt)) return srcEvt.id;
       if (isCalDAVEvent(srcEvt)) return srcEvt.uid;
     })();
-    const matchingTargetEvent = targetEventsMap[srcEvtUID];
-    if (matchingTargetEvent) {
-      if (!checkMappedEquality(srcEvt, matchingTargetEvent)) {
-        const updatedTargetEvent = mapEventToMatchingCal(srcEvt, matchingTargetEvent);
-        if (isGCalEvent(matchingTargetEvent)) (updatedTargetEvent as GCalEvent).id = matchingTargetEvent.id;
-        if (isCalDAVEvent(matchingTargetEvent)) (updatedTargetEvent as CalDAVEvent).uid = matchingTargetEvent.uid;
-        eventsUpdate.push(updatedTargetEvent);
+
+    // Search matching event in targetEvents
+    const matchingTargetEvt = (() => {
+      for (const targetEvt of targetEvents) {
+        if (targetEvt.description.includes(matchingId)) return targetEvt;
       }
-      markedTargetEvents.push(matchingTargetEvent);
+      return undefined;
+    })();
+
+    srcEvtData.description = `Original ID: ${matchingId}`;
+    if (!matchingTargetEvt) {
+      // No match -> insert
+      eventsInsert.push(srcEvtData);
     }
     else {
-      eventsInsert.push(srcEvt);
+      // Match
+      markedTargetEventIds.push(matchingTargetEvt.id);
+      if (!compareEventsData(extractGCalEventData(matchingTargetEvt), srcEvtData)) {
+        // Not matching -> update
+        eventsUpdate.push({ eventId: matchingTargetEvt.id, eventData: srcEvtData });
+      }
     }
   }
 
-  // Deleting all non marked events
   for (const targetEvt of targetEvents) {
-    // Check if targetEvt is in markedTargetEvents, if no, add it to the delete list
-    if (!markedTargetEvents.find((evt) => matchingCopy(targetEvt, evt))) {
-      eventsDelete.push(targetEvt);
-    }
+    if (!markedTargetEventIds.includes(targetEvt.id)) eventsDelete.push(targetEvt.id);
   }
 
   return {
