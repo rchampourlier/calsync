@@ -38,8 +38,8 @@ async function cleanTarget() {
 }
 
 try {
-  // main();
-  cleanTarget();
+  main();
+  // cleanTarget();
 } catch (err) {
   log('Error: ' + err);
 }

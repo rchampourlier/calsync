@@ -2,8 +2,8 @@ import fs from "fs";
 import readline from "readline";
 import { google, calendar_v3 } from "googleapis";
 import { GCalDescriptor, LOG_DETAIL } from "../config";
-import { log, logWithEvent } from "../log"
-import { GCalEvent } from "../events";
+import { CalendarEventData, GCalEvent } from "../events";
+import { log, logWithCalDAVEvent, logWithGCalEvent } from "../log";
 
 // If modifying these scopes, delete token.json.
 const SCOPES = [
@@ -48,12 +48,12 @@ export const DeleteUpcomingEvents = (gcal: GCalDescriptor) => {
   });
 };
 
-export const DeleteEvents = (gcal: GCalDescriptor, events: GCalEvent[]) => {
+export const DeleteEvents = (gcal: GCalDescriptor, eventIds: string[]) => {
   return new Promise((resolve, reject) => {
     fs.readFile('credentials.json', (err, content) => {
       if (err) return log(`Error loading client secret file: ${err}`);
       authorize(JSON.parse(content.toString()), (oauth) => { 
-        deleteEvents(oauth, gcal.id, events)
+        deleteEvents(oauth, gcal.id, eventIds)
         .then(resolve).catch(reject);
       });
     });
@@ -72,12 +72,12 @@ export const InsertEvents = (gcal: GCalDescriptor, events: Array<calendar_v3.Sch
   });
 };
 
-export const UpdateEvents = (gcal: GCalDescriptor, events: Array<calendar_v3.Schema$Event>) => {
+export const UpdateEvents = (gcal: GCalDescriptor, updates: { eventId: string, eventData: CalendarEventData }[]) => {
   return new Promise((resolve, reject) => {
     fs.readFile('credentials.json', (err, content) => {
       if (err) return log(`Error loading client secret file: ${err}`);
       authorize(JSON.parse(content.toString()), (oauth) => { 
-        updateEvents(oauth, gcal.id, events)
+        updateEvents(oauth, gcal.id, updates)
         .then(resolve).catch(reject);
       });
     });
@@ -154,32 +154,32 @@ function insertEvents(auth: any, calendarId: string, events: Array<calendar_v3.S
           calendarId: calendarId,
           requestBody: evt
         });
-        if (LOG_DETAIL) logWithEvent(`Inserted`, evt);
+        if (LOG_DETAIL) logWithGCalEvent(`Inserted`, evt);
       }
       catch (err) {
-        logWithEvent('Error inserting event', evt);
+        logWithGCalEvent('Error inserting event', evt);
       }
     }
     resolve();
   });
 };
 
-function updateEvents(auth: any, calendarId: string, events: Array<calendar_v3.Schema$Event>) {
+function updateEvents(auth: any, calendarId: string, updates: { eventId: string, eventData: CalendarEventData }[]) {
   return new Promise<void>(async (resolve, reject) => {
     const calendar = google.calendar({version: 'v3', auth});
 
-    for (const evt of events) {
+    for (const update of updates) {
       try {
+        await throttlingDelay(); // throttling is done before the call, otherwise calls failing in sequence would break the rate limit
         await calendar.events.update({
           calendarId: calendarId,
-          eventId: 
-          requestBody: evt
+          eventId: update.eventId,
+          requestBody: update.eventData
         });
-        if (LOG_DETAIL) logWithEvent(`Inserted`, evt);
-        await throttlingDelay();
+        if (LOG_DETAIL) logWithGCalEvent(`Updated #${update.eventId}`, update.eventData);
       }
       catch (err) {
-        logWithEvent('Error updating event', evt);
+        logWithGCalEvent(`Error updating event #${update.eventId}`, update.eventData);
       }
     }
     resolve();
@@ -209,7 +209,7 @@ function deleteUpcomingEvents(auth, calendarId: string) {
             calendarId: calendarId,
             eventId: evt.id
           });
-          if (LOG_DETAIL) logWithEvent('Deleted', evt);
+          if (LOG_DETAIL) logWithGCalEvent('Deleted', evt);
           await throttlingDelay();
         }
         catch (err) {
@@ -224,21 +224,21 @@ function deleteUpcomingEvents(auth, calendarId: string) {
   });
 }
 
-function deleteEvents(auth, calendarId: string, events: GCalEvent[]) {
+function deleteEvents(auth, calendarId: string, eventIds: string[]) {
   return new Promise<void>(async (resolve, reject) => {
     const calendar = google.calendar({version: 'v3', auth});
 
-    for (const evt of events) {
+    for (const evtId of eventIds) {
       try {
         await calendar.events.delete({
           calendarId: calendarId,
-          eventId: evt.id
+          eventId: evtId
         });
-        if (LOG_DETAIL) logWithEvent('Deleted', evt);
+        if (LOG_DETAIL) log(`Deleted event #${evtId}`);
         await throttlingDelay();
       }
       catch (err) {
-        reject(`Error deleting event "${evt.summary}" (${evt.start.date ? evt.start.date : evt.start.dateTime})": ${err}\n${evt}`);
+        reject(`Error deleting event #${evtId}`);
       }
     }
     resolve();

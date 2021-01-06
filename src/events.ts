@@ -17,8 +17,8 @@ export type CalendarEventData = {
   transparency?: string
 }
 
-export const isCalDAVEvent = (e: any): e is CalDAVEvent => !!e.iCalendarData;
-export const isGCalEvent = (e: any): e is GCalEvent => !!e.iCalUID;
+export const isCalDAVEvent = (e: any): e is CalDAVEvent => !!e.uid;
+export const isGCalEvent = (e: any): e is GCalEvent => !!e.id;
 
 function formatDate(date: Date): string {
   function pad(n: number): string {
