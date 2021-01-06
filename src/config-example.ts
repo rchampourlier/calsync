@@ -1,4 +1,5 @@
 export type CalDavDescriptor = {
+  kind: 'CalDav',
   label: string,
   url: string,
   username: string,
@@ -7,49 +8,46 @@ export type CalDavDescriptor = {
 };
 
 export type GCalDescriptor = {
+  kind: 'GCal',
   label: string,
   id: string,
   redactedSummary?: string
 };
 
+export const isGCalDescriptor = (d: any): d is GCalDescriptor => d.kind === 'GCal';
+
+export type CalendarDescriptor = CalDavDescriptor | GCalDescriptor;
+
 // A string that will be searched in event summaries to prevent
 // the redacting of the summary when copying the event.
 export const FORCE_SHARING_SIGN = "👀";
+export const LOG_DETAIL = true;
 
-// A Google Calendar that will receive the events from mirrored calendars.
-export const GCAL_MIRROR_TARGET: GCalDescriptor = {
-  label: 'mirror-target', // just a label for logs
-  id: 'YOUR-CALENDAR-KEY@group.calendar.google.com' // search for the calendar ID in the calendar's settings in Google Calendar
-};
-
-// Google Calendars that will be mirrored.
-export const GCAL_MIRRORED_CALS: {[key: string]: GCalDescriptor } = {
-  personal: {
-    label: 'PERSONAL', // just a label for logs
-    id: 'YOUR-PERSONAL-MIRRORED-CALENDAR-ID',
-    redactedSummary: 'Personal', // a text that will replace the event's summary when it's copied for privacy
+export const sources: CalendarDescriptor[] = [
+  {
+    kind: 'GCal',
+    label: 'public',
+    id: 'your-name@gmail.com',
+    redactedSummary: 'Public',
   },
-  other: {
-    label: 'OTHER',
-    id: 'YOUR-OTHER-MIRRORED-CALENDAR-ID',
-    redactedSummary: 'Other'
-  }
-};
-
-// CalDAV calendars that will be mirrored
-export const CALDAV_MIRRORED_CALS: {[key: string]: CalDavDescriptor} = {
-  personal: {
-    label: 'PERSONAL', // just a label for logs
-    url: 'https://dav.YOUR-DOMAIN/calendars/CALENDAR-ID/CALENDAR-NAME/', // the calendar's URL, look at the readme for how to find it
-    username: 'YOUR-USERNAME',
-    password: 'YOUR-PASSWWORD',
+  {
+    kind: 'GCal',
+    label: 'personal',
+    id: 'your-other-name@gmail.com',
     redactedSummary: 'Personal'
   },
-  other: {
-    label: 'other',
-    url: 'https://dav.YOUR-DOMAIN/calendars/CALENDAR-ID/CALENDAR-NAME/',
-    username: 'YOUR-USERNAME',
-    password: 'YOUR-PASSWWORD',
-    redactedSummary: 'Work'
-  }
+  {
+    kind: 'CalDav',
+    label: 'home',
+    url: 'https://dav.domain.com/calendars/123456/home/',
+    username: 'your-username@domain.com',
+    password: 'your-password',
+    redactedSummary: 'Home'
+  },
+];
+
+export const target: CalendarDescriptor = {
+  kind: 'GCal',
+  label: 'mirror-target',
+  id: 'your-calendar-id@group.calendar.google.com'
 };
