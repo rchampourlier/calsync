@@ -1,4 +1,5 @@
 import { CalendarEvent, CalendarEventData, compareEventsData, eventDataToGCalEvent, extractEventData, extractGCalEventData, GCalEvent, isCalDAVEvent, isGCalEvent } from './events';
+import { NewSummary, ShouldCopy } from './rules';
 
  export type ToGCalInstructions = {
   insert: CalendarEventData[],
@@ -18,38 +19,18 @@ import { CalendarEvent, CalendarEventData, compareEventsData, eventDataToGCalEve
  * @param sourcesEvents
  * @param targetEvents 
  */
-export function ToGCal(sourcesEvents: CalendarEvent[], targetEvents: GCalEvent[]): ToGCalInstructions {
+export function ToGCal(sourcesEvents: { event: CalendarEvent, redactedSummary: string }[], targetEvents: GCalEvent[]): ToGCalInstructions {
   const eventsInsert: CalendarEventData[] = [];
   const eventsUpdate: { eventId: string, eventData: CalendarEventData }[] = [];
   const eventsDelete: string[] = [];
 
-  if (sourcesEvents.length === 0) return {
-    insert: [],
-    update: [],
-    delete: targetEvents.map((e) => e.id)
-  }
-
-  if (targetEvents.length === 0) return {
-    insert: sourcesEvents.map((e) => {
-      const srcId = (() => {
-        if (isGCalEvent(e)) return e.id;
-        if (isCalDAVEvent(e)) return e.uid;
-      })();
-      const newEvtData: CalendarEventData = extractEventData(e);
-      newEvtData.description = `Original ID: ${srcId}`;
-      return newEvtData;
-    }),
-    update: [],
-    delete: []
-  }
-
   const markedTargetEventIds: string[] = []; // ids of target events matched with sources events (missing are deleted)
 
   for (const srcEvt of sourcesEvents) {
-    const srcEvtData = extractEventData(srcEvt);
+    const srcEvtData = extractEventData(srcEvt.event);
     const matchingId = (() => {
-      if (isGCalEvent(srcEvt)) return srcEvt.id;
-      if (isCalDAVEvent(srcEvt)) return srcEvt.uid;
+      if (isGCalEvent(srcEvt.event)) return srcEvt.event.id;
+      if (isCalDAVEvent(srcEvt.event)) return srcEvt.event.uid;
     })();
 
     // Search matching event in targetEvents
@@ -61,6 +42,11 @@ export function ToGCal(sourcesEvents: CalendarEvent[], targetEvents: GCalEvent[]
     })();
 
     srcEvtData.description = `Original ID: ${matchingId}`;
+
+    // Ignoring events not to be copied
+    if (!ShouldCopy(srcEvtData.summary, !!srcEvtData.transparency && srcEvtData.transparency === 'transparent')) continue;
+    srcEvtData.summary = NewSummary(srcEvtData.summary, srcEvt.redactedSummary)
+
     if (!matchingTargetEvt) {
       // No match -> insert
       eventsInsert.push(srcEvtData);

@@ -26,6 +26,37 @@ function mapEventToTargetEvent(evt: CalendarEvent): GCalEvent {
 
 describe('ToGCal', () => {
 
+  test('transparent event is not inserted', () => {
+    const sourcesEvents = [
+      { event: fixtures.GetCalDAV('transparent'), redactedSummary: undefined }
+    ];
+    const targetEvents = [];
+    expect(
+      sync.ToGCal(sourcesEvents, targetEvents)
+    ).toStrictEqual({
+      insert: [],
+      update: [],
+      delete: []
+    });
+  });
+
+  test('summary is correctly redacted on insertion', () => {
+    const sourcesEvents = [
+      { event: fixtures.GetCalDAV('nonTransparent'), redactedSummary: 'redacted' }
+    ];
+    const targetEvents = [];
+    let expectedInsertEventData = mapEventToDataWithDescription(fixtures.GetCalDAV('nonTransparent'));
+    expectedInsertEventData.summary = 'redacted';
+
+    expect(
+      sync.ToGCal(sourcesEvents, targetEvents)
+    ).toStrictEqual({
+      insert: [expectedInsertEventData],
+      update: [],
+      delete: []
+    });
+  });
+
   test('empty sources and target', () => {
     const sourcesEvents = [];
     const targetEvents = [];
@@ -39,12 +70,15 @@ describe('ToGCal', () => {
   });
 
   test('empty target', () => {
-    const sourcesEvents = [fixtures.GetGCal('common'), fixtures.GetCalDAV('allDay')];
+    const sourcesEvents = [
+      { event: fixtures.GetGCal('common'), redactedSummary: undefined },
+      { event: fixtures.GetCalDAV('allDay'), redactedSummary: undefined }
+    ];
     const targetEvents = [];
     expect(
       sync.ToGCal(sourcesEvents, targetEvents)
     ).toStrictEqual({
-      insert: sourcesEvents.map(mapEventToDataWithDescription),
+      insert: sourcesEvents.map((e) => mapEventToDataWithDescription(e.event)),
       update: [],
       delete: []
     });
@@ -63,8 +97,11 @@ describe('ToGCal', () => {
   });
 
   test('target events are in sync with sources events', () => {
-    const sourcesEvents = [fixtures.GetGCal('common'), fixtures.GetCalDAV('transparent')];
-    const targetEvents = sourcesEvents.map((e) => mapEventToTargetEvent(e));
+    const sourcesEvents = [
+      { event: fixtures.GetGCal('common'), redactedSummary: undefined },
+      { event: fixtures.GetCalDAV('nonTransparent'), redactedSummary: undefined }
+    ];;
+    const targetEvents = sourcesEvents.map((e) => mapEventToTargetEvent(e.event));
 
     expect(
       sync.ToGCal(sourcesEvents, targetEvents)
@@ -75,12 +112,31 @@ describe('ToGCal', () => {
     });
   });
 
+  test('source events changed to transparent is deleted', () => {
+    const sourcesEvents = [
+      { event: fixtures.GetGCal('common'), redactedSummary: undefined },
+      { event: fixtures.GetCalDAV('transparent'), redactedSummary: undefined }
+    ];;
+    const targetEvents = sourcesEvents.map((e) => mapEventToTargetEvent(e.event));
+
+    expect(
+      sync.ToGCal(sourcesEvents, targetEvents)
+    ).toStrictEqual({
+      insert: [],
+      update: [],
+      delete: ['00000001-AAAA-BBBB-CCCC-DDDDDDDDDDDD']
+    });
+  });
+
   test('event updated in sources', () => {
     const updatedGCalEvent = fixtures.GetGCal('common');
     updatedGCalEvent.start.dateTime = '2020-12-28T13:00:00+01:00';
     updatedGCalEvent.end.dateTime = '2020-12-28T14:00:00+01:00';
     updatedGCalEvent.summary = 'Updated common event';
-    const sourcesEvents = [updatedGCalEvent, fixtures.GetCalDAV('nonTransparent')];
+    const sourcesEvents = [
+      { event: updatedGCalEvent, redactedSummary: undefined },
+      { event: fixtures.GetCalDAV('nonTransparent'), redactedSummary: undefined }
+    ];
 
     const targetUpdatedEvent = fixtures.GetGCal('common');
     targetUpdatedEvent.id = 'aaaa_20201228T100000Z';
@@ -106,7 +162,10 @@ describe('ToGCal', () => {
   });
 
   test('missing event in target', () => {
-    const sourcesEvents = [fixtures.GetGCal('common'), fixtures.GetCalDAV('nonTransparent')];
+    const sourcesEvents = [
+      { event: fixtures.GetGCal('common'), redactedSummary: undefined },
+      { event: fixtures.GetCalDAV('nonTransparent'), redactedSummary: undefined }
+    ];
     const targetEvents = [fixtures.GetCalDAV('nonTransparent')].map((e) => mapEventToTargetEvent(e));
 
     expect(
@@ -119,7 +178,10 @@ describe('ToGCal', () => {
   });
 
   test('extraneous event in target', () => {
-    const sourcesEvents = [fixtures.GetGCal('common'), fixtures.GetCalDAV('nonTransparent')];
+    const sourcesEvents = [
+      { event: fixtures.GetGCal('common'), redactedSummary: undefined },
+      { event: fixtures.GetCalDAV('nonTransparent'), redactedSummary: undefined }
+    ];
     const targetEvents = [fixtures.GetGCal('common'), fixtures.GetCalDAV('nonTransparent'), fixtures.GetCalDAV('transparent')].map((e) => mapEventToTargetEvent(e));
 
     expect(
@@ -135,7 +197,11 @@ describe('ToGCal', () => {
     const srcEventThatWasUpdated = fixtures.GetGCal('common');
     srcEventThatWasUpdated.start.dateTime = '2020-12-28T13:00:00+01:00';
     srcEventThatWasUpdated.end.dateTime = '2020-12-28T14:00:00+01:00';
-    const sourcesEvents = [srcEventThatWasUpdated, fixtures.GetCalDAV('nonTransparent'), fixtures.GetCalDAV('nonAllDay')];
+    const sourcesEvents = [
+      { event: srcEventThatWasUpdated, redactedSummary: undefined },
+      { event: fixtures.GetCalDAV('nonTransparent'), redactedSummary: undefined },
+      { event: fixtures.GetCalDAV('nonAllDay'), redactedSummary: undefined }
+    ];
 
     const targetEventToBeUpdated = fixtures.GetGCal('common');
     targetEventToBeUpdated.id = 'aabbccdd'; // changing so we confirm the update is done using this id

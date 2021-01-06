@@ -9,13 +9,13 @@ import { CalendarEvent } from './events';
 const writeToFile = false;
 
 async function main() {
-  const sourcesEvents = [];
+  const sourcesEvents: { event: CalendarEvent, redactedSummary: string | undefined }[] = [];
   for (const source of config.sources) {
     const fetchedEvents = source.kind === 'CalDav' ?
       await caldav.ListUpcomingEvents(source) :
       await gcal.ListUpcomingEvents(source);
     fetchedEvents.forEach((event: CalendarEvent) => {
-      sourcesEvents.push(event);
+      sourcesEvents.push({ event: event, redactedSummary: source.redactedSummary });
     });
   }
   if (writeToFile) fs.writeFileSync('./data/sourcesEvents.json', JSON.stringify(sourcesEvents));
