@@ -14,6 +14,7 @@ async function main() {
     const fetchedEvents = source.kind === 'CalDav' ?
       await caldav.ListEventsUpcomingYear(source) :
       await gcal.ListEventsUpcomingYear(source);
+    log(`Fetched ${fetchedEvents.length} events for ${source.label}`);
     fetchedEvents.forEach((event: CalendarEvent) => {
       sourcesEvents.push({ event: event, redactedSummary: source.redactedSummary });
     });
@@ -25,6 +26,7 @@ async function main() {
     if (writeToFile) fs.writeFileSync('./data/targetEvents.json', JSON.stringify(targetEvents));
     const instructions: sync.ToGCalInstructions = sync.ToGCal(sourcesEvents, targetEvents);
 
+    log(`Sync: ${instructions.insert.length} inserts, ${instructions.update.length} updates, ${instructions.delete.length} deletions`);
     await gcal.InsertEvents(config.target, instructions.insert);
     await gcal.UpdateEvents(config.target, instructions.update);
     await gcal.DeleteEvents(config.target, instructions.delete);
