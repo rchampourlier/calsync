@@ -12,35 +12,9 @@ function throttlingDelay() {
   });
 };
 
-export const ListUpcomingEvents = (calDesc: CalDavDescriptor): Promise<CalendarEvent[]> => {
+export const ListEventsUpcomingYear = (calDesc: CalDavDescriptor): Promise<CalendarEvent[]> => {
   const calendarClient = new CalendarClient(calDesc.url, calDesc.username, calDesc.password);
-  return calendarClient.getEvents(new Date());
-}
-
-export const DeleteUpcomingEvents = (calDesc: CalDavDescriptor) => {
-  return new Promise<void>(async (resolve, reject) => {
-    const calendarClient = new CalendarClient(calDesc.url, calDesc.username, calDesc.password);
-    
-    ListUpcomingEvents(calDesc)
-    .then(async (events) => {
-      if (events.length === 0) {
-        resolve();
-        return;
-      }
-      for (const evt of events) {
-        try {
-          await calendarClient.removeEvent(evt);
-          if (LOG_DETAIL) logWithCalDAVEvent('Deleted', evt);
-          await throttlingDelay();
-        }
-        catch (err) {
-          reject(`Error deleting event "${evt.summary}" (${evt.startDate.toISOString()})": ${err}\n${evt}`);
-        }
-      }
-      resolve();
-    })
-    .catch((err) => {
-      reject(`Error fetching upcoming events: ${err}`);
-    });
-  });
+  const now = new Date(); 
+  const inOneYear = new Date(); inOneYear.setFullYear(now.getFullYear() + 1);
+  return calendarClient.getEvents(now, inOneYear);
 }

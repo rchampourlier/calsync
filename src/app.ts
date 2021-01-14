@@ -12,8 +12,8 @@ async function main() {
   const sourcesEvents: { event: CalendarEvent, redactedSummary: string | undefined }[] = [];
   for (const source of config.sources) {
     const fetchedEvents = source.kind === 'CalDav' ?
-      await caldav.ListUpcomingEvents(source) :
-      await gcal.ListUpcomingEvents(source);
+      await caldav.ListEventsUpcomingYear(source) :
+      await gcal.ListEventsUpcomingYear(source);
     fetchedEvents.forEach((event: CalendarEvent) => {
       sourcesEvents.push({ event: event, redactedSummary: source.redactedSummary });
     });
@@ -21,7 +21,7 @@ async function main() {
   if (writeToFile) fs.writeFileSync('./data/sourcesEvents.json', JSON.stringify(sourcesEvents));
 
   if (config.target.kind === 'GCal') {
-    const targetEvents = await gcal.ListUpcomingEvents(config.target);
+    const targetEvents = await gcal.ListEventsUpcomingYear(config.target);
     if (writeToFile) fs.writeFileSync('./data/targetEvents.json', JSON.stringify(targetEvents));
     const instructions: sync.ToGCalInstructions = sync.ToGCal(sourcesEvents, targetEvents);
 

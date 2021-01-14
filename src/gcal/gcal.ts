@@ -24,12 +24,12 @@ function throttlingDelay() {
   });
 };
 
-export const ListUpcomingEvents = (gcal: GCalDescriptor): Promise<calendar_v3.Schema$Event[]> => {
+export const ListEventsUpcomingYear = (gcal: GCalDescriptor): Promise<calendar_v3.Schema$Event[]> => {
   return new Promise((resolve, reject) => {
     fs.readFile('credentials.json', (err, content) => {
       if (err) return log(`Error loading client secret file: ${err}`);
       authorize(JSON.parse(content.toString()), (oauth) => { 
-        listUpcomingEvents(oauth, gcal.id)
+        listEventsUpcomingYear(oauth, gcal.id)
         .then(resolve).catch(reject);
       });
     });
@@ -197,7 +197,7 @@ function deleteUpcomingEvents(auth, calendarId: string) {
   return new Promise<void>((resolve, reject) => {
     const calendar = google.calendar({version: 'v3', auth});
 
-    listUpcomingEvents(auth, calendarId)
+    listEventsUpcomingYear(auth, calendarId)
     .then(async (events) => {
       if (events.length === 0) {
         resolve();
@@ -248,21 +248,25 @@ function deleteEvents(auth, calendarId: string, eventIds: string[]) {
 /**
  * List upcoming events in the specified calendar. Returns a `Promise`.
  */
-function listUpcomingEvents(auth, calendarId: string): Promise<calendar_v3.Schema$Event[]>  {
+function listEventsUpcomingYear(auth: any, calendarId: string): Promise<calendar_v3.Schema$Event[]>  {
   const calendar = google.calendar({version: 'v3', auth});
-  return new Promise((resolve, reject) => {
-    return calendar.events.list({
-      calendarId: calendarId,
-      timeMin: (new Date()).toISOString(),
-      singleEvents: true,
-      orderBy: 'startTime'
-    })
-    .then((res) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const now = new Date();
+      const inOneYear = new Date(); inOneYear.setFullYear(inOneYear.getFullYear() + 1);
+      const res = await calendar.events.list({
+        calendarId: calendarId,
+        timeMin: now.toISOString(),
+        timeMax: inOneYear.toISOString(),
+        singleEvents: true,
+        orderBy: 'startTime'
+      });
       if (res.data.nextPageToken !== undefined) {
         log('-- [WARNING] Only the 1st 250 upcoming events are fetched');
       }
       resolve(res.data.items);
-    })
-    .catch(reject);
+    } catch (reject) {
+      return reject(reject);
+    }
   })
 }
