@@ -99,7 +99,7 @@ describe('ToGCal', () => {
   test('target events are in sync with sources events', () => {
     const sourcesEvents = [
       { event: fixtures.GetGCal('common'), redactedSummary: undefined },
-      { event: fixtures.GetCalDAV('nonTransparent'), redactedSummary: undefined }
+      { event: fixtures.GetCalDAV('nonTransparent'), redactedSummary: undefined },
     ];;
     const targetEvents = sourcesEvents.map((e) => mapEventToTargetEvent(e.event));
 

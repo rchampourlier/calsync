@@ -48,14 +48,14 @@ export function ToGCal(sourcesEvents: { event: CalendarEvent, redactedSummary: s
     srcEvtData.summary = NewSummary(srcEvtData.summary, srcEvt.redactedSummary)
 
     if (!matchingTargetEvt) {
-      // No match -> insert
+      // No match on ID -> insert
       eventsInsert.push(srcEvtData);
     }
     else {
-      // Match
+      // Match on ID -> update or do nothing
       markedTargetEventIds.push(matchingTargetEvt.id);
       if (!compareEventsData(extractGCalEventData(matchingTargetEvt), srcEvtData)) {
-        // Not matching -> update
+        // Not matching on content -> update
         eventsUpdate.push({ eventId: matchingTargetEvt.id, eventData: srcEvtData });
       }
     }

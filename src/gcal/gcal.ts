@@ -36,12 +36,12 @@ export const ListEventsUpcomingYear = (gcal: GCalDescriptor): Promise<calendar_v
   });
 };
 
-export const DeleteUpcomingEvents = (gcal: GCalDescriptor) => {
+export const deleteEventsUpcomingYear = (gcal: GCalDescriptor) => {
   return new Promise((resolve, reject) => {
     fs.readFile('credentials.json', (err, content) => {
       if (err) return log(`Error loading client secret file: ${err}`);
       authorize(JSON.parse(content.toString()), (oauth) => { 
-        deleteUpcomingEvents(oauth, gcal.id)
+        _deleteEventsUpcomingYear(oauth, gcal.id)
         .then(resolve).catch(reject);
       });
     });
@@ -193,7 +193,7 @@ function updateEvents(auth: any, calendarId: string, updates: { eventId: string,
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  * @returns Promise<unknown>
  */
-function deleteUpcomingEvents(auth, calendarId: string) {
+function _deleteEventsUpcomingYear(auth, calendarId: string) {
   return new Promise<void>((resolve, reject) => {
     const calendar = google.calendar({version: 'v3', auth});
 
@@ -253,6 +253,7 @@ function listEventsUpcomingYear(auth: any, calendarId: string): Promise<calendar
   return new Promise(async (resolve, reject) => {
     try {
       const now = new Date();
+      // const now = new Date(); now.setFullYear(now.getFullYear() - 1);
       const inOneYear = new Date(); inOneYear.setFullYear(inOneYear.getFullYear() + 1);
       const res = await calendar.events.list({
         calendarId: calendarId,

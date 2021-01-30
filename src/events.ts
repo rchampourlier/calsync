@@ -32,12 +32,18 @@ function formatDate(date: Date): string {
 }
 
 export function extractGCalEventData(evt: GCalEvent): CalendarEventData {
-  return {
+  let data: CalendarEventData = {
     summary: evt.summary,
-    start: { date: evt.start.date, dateTime: evt.start.dateTime },
-    end: { date: evt.end.date, dateTime: evt.end.dateTime },
-    transparency: evt.transparency
+    start: {},
+    end: {},
+    transparency: evt.transparency,
+    description: evt.description,
   };
+  if (evt.start && evt.start.date) data.start.date = evt.start.date;
+  if (evt.start && evt.start.dateTime) data.start.dateTime = evt.start.dateTime;
+  if (evt.end && evt.end.date) data.end.date = evt.end.date;
+  if (evt.end && evt.end.dateTime) data.end.dateTime = evt.end.dateTime;
+  return data;
 }
 
 export function extractCalDAVEventData(evt: CalDAVEvent): CalendarEventData {
@@ -70,8 +76,14 @@ export function eventDataToGCalEvent(d: CalendarEventData): GCalEvent {
 
 export function compareEventsData(evtA: CalendarEventData, evtB: CalendarEventData): boolean {
   if (evtA.summary !== evtB.summary) return false;
-  if (evtA.start.date && (!evtB.start.date || evtA.start.date !== evtB.start.date)) return false;
-  if (evtA.start.dateTime && (!evtB.start.dateTime || evtA.start.dateTime !== evtB.start.dateTime)) return false;
+  if (evtA.start.date && !evtB.start.date) return false;
+  if (evtA.start.date !== evtB.start.date) return false;
+  if (evtA.start.dateTime && !evtB.start.dateTime) return false;
+  if (evtA.end.dateTime && !evtB.end.dateTime) return false;
+  if (evtA.start.dateTime && Date.parse(evtA.start.dateTime) !== Date.parse(evtB.start.dateTime)) return false;
+  if (evtA.end.dateTime && Date.parse(evtA.end.dateTime) !== Date.parse(evtB.end.dateTime)) return false;
   if (evtA.transparency !== evtB.transparency) return false;
+  if (evtA.description !== evtB.description) return false;
+
   return true;
 }

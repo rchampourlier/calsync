@@ -36,7 +36,7 @@ async function main() {
 
 async function cleanTarget() {
   const target = config.target as config.GCalDescriptor;
-  await gcal.DeleteUpcomingEvents(target);
+  await gcal.deleteEventsUpcomingYear(target);
 }
 
 try {
