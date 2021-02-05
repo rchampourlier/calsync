@@ -7,7 +7,7 @@
 
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/romain/Dev/+projects/calsync/scripts/run.sh</string>
+    <string>YOUR-DIRECTORY/calsync/scripts/run.sh</string>
   </array>
 
   <key>Nice</key>
