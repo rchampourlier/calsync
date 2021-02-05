@@ -14,7 +14,7 @@ export type CalendarEventData = {
   description?: string,
   start: { date?: string, dateTime?: string },
   end: { date?: string, dateTime?: string },
-  transparency?: string
+  transparency?: string,
 }
 
 export const isCalDAVEvent = (e: any): e is CalDAVEvent => !!e.uid;

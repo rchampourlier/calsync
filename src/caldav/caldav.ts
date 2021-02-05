@@ -12,9 +12,7 @@ function throttlingDelay() {
   });
 };
 
-export const ListEventsUpcomingYear = (calDesc: CalDavDescriptor): Promise<CalendarEvent[]> => {
+export const listEvents = (calDesc: CalDavDescriptor, start: Date, end: Date): Promise<CalendarEvent[]> => {
   const calendarClient = new CalendarClient(calDesc.url, calDesc.username, calDesc.password);
-  const now = new Date(); 
-  const inOneYear = new Date(); inOneYear.setFullYear(now.getFullYear() + 1);
-  return calendarClient.getEvents(now, inOneYear);
+  return calendarClient.getEvents(start, end);
 }

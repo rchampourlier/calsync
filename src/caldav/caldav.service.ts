@@ -295,7 +295,9 @@ export class CalDAVService {
             duration,
             organizer: event.organizer,
             attendees,
+            isRecurring: event.isRecurring(),
             recurrenceId: event.recurrenceId,
+            recurrenceIterator: event.iterator(),
             allDayEvent: this.isAllDayEvent(duration),
             tzid,
             iCalendarData: iCalData

@@ -1,7 +1,7 @@
 import { calendar_v3 } from "googleapis"
 import { CalendarEvent } from "./caldav/calendar-event"
 
-const Version = '1.1.0';
+const Version = '1.1.1';
 
 function prefix(): string {
   return `v${Version} -- ${(new Date()).toISOString()} -- `;

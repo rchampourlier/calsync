@@ -2,8 +2,8 @@ import fs from "fs";
 import readline from "readline";
 import { google, calendar_v3 } from "googleapis";
 import { GCalDescriptor, LOG_DETAIL } from "../config";
-import { CalendarEventData, GCalEvent } from "../events";
-import { log, logWithCalDAVEvent, logWithGCalEvent } from "../log";
+import { CalendarEventData } from "../events";
+import { log, logWithGCalEvent } from "../log";
 
 // If modifying these scopes, delete token.json.
 const SCOPES = [
@@ -24,60 +24,61 @@ function throttlingDelay() {
   });
 };
 
-export const ListEventsUpcomingYear = (gcal: GCalDescriptor): Promise<calendar_v3.Schema$Event[]> => {
+export const listEvents = (gcal: GCalDescriptor, start: Date, end: Date): Promise<calendar_v3.Schema$Event[]> => {
   return new Promise((resolve, reject) => {
     fs.readFile('credentials.json', (err, content) => {
       if (err) return log(`Error loading client secret file: ${err}`);
       authorize(JSON.parse(content.toString()), (oauth) => { 
-        listEventsUpcomingYear(oauth, gcal.id)
+        _listEvents(oauth, gcal.id, start, end)
+        .then(resolve)
+        .catch(reject);
+      });
+    });
+  });
+};
+
+export const deleteEvents = (gcal: GCalDescriptor, start: Date, end: Date) => {
+  return new Promise((resolve, reject) => {
+    fs.readFile('credentials.json', (err, content) => {
+      if (err) return log(`Error loading client secret file: ${err}`);
+      authorize(JSON.parse(content.toString()), (oauth) => { 
+        _deleteEvents(oauth, gcal.id, start, end)
         .then(resolve).catch(reject);
       });
     });
   });
 };
 
-export const deleteEventsUpcomingYear = (gcal: GCalDescriptor) => {
+export const deleteEventsByIds = (gcal: GCalDescriptor, eventIds: string[]) => {
   return new Promise((resolve, reject) => {
     fs.readFile('credentials.json', (err, content) => {
       if (err) return log(`Error loading client secret file: ${err}`);
       authorize(JSON.parse(content.toString()), (oauth) => { 
-        _deleteEventsUpcomingYear(oauth, gcal.id)
+        _deleteEventsByIds(oauth, gcal.id, eventIds)
         .then(resolve).catch(reject);
       });
     });
   });
 };
 
-export const DeleteEvents = (gcal: GCalDescriptor, eventIds: string[]) => {
+export const insertEvents = (gcal: GCalDescriptor, events: Array<calendar_v3.Schema$Event>) => {
   return new Promise((resolve, reject) => {
     fs.readFile('credentials.json', (err, content) => {
       if (err) return log(`Error loading client secret file: ${err}`);
       authorize(JSON.parse(content.toString()), (oauth) => { 
-        deleteEvents(oauth, gcal.id, eventIds)
+        _insertEvents(oauth, gcal.id, events)
         .then(resolve).catch(reject);
       });
     });
   });
 };
 
-export const InsertEvents = (gcal: GCalDescriptor, events: Array<calendar_v3.Schema$Event>) => {
+export const updateEvents = (gcal: GCalDescriptor, updates: { eventId: string, eventData: CalendarEventData }[]) => {
   return new Promise((resolve, reject) => {
     fs.readFile('credentials.json', (err, content) => {
       if (err) return log(`Error loading client secret file: ${err}`);
       authorize(JSON.parse(content.toString()), (oauth) => { 
-        insertEvents(oauth, gcal.id, events)
-        .then(resolve).catch(reject);
-      });
-    });
-  });
-};
-
-export const UpdateEvents = (gcal: GCalDescriptor, updates: { eventId: string, eventData: CalendarEventData }[]) => {
-  return new Promise((resolve, reject) => {
-    fs.readFile('credentials.json', (err, content) => {
-      if (err) return log(`Error loading client secret file: ${err}`);
-      authorize(JSON.parse(content.toString()), (oauth) => { 
-        updateEvents(oauth, gcal.id, updates)
+        _updateEvents(oauth, gcal.id, updates)
         .then(resolve).catch(reject);
       });
     });
@@ -143,7 +144,7 @@ function getAccessToken(oAuth2Client, callback) {
  * @param resolve 
  * @param reject 
  */
-function insertEvents(auth: any, calendarId: string, events: Array<calendar_v3.Schema$Event>) {
+function _insertEvents(auth: any, calendarId: string, events: Array<calendar_v3.Schema$Event>) {
   return new Promise<void>(async (resolve, reject) => {
     const calendar = google.calendar({version: 'v3', auth});
 
@@ -164,7 +165,7 @@ function insertEvents(auth: any, calendarId: string, events: Array<calendar_v3.S
   });
 };
 
-function updateEvents(auth: any, calendarId: string, updates: { eventId: string, eventData: CalendarEventData }[]) {
+function _updateEvents(auth: any, calendarId: string, updates: { eventId: string, eventData: CalendarEventData }[]) {
   return new Promise<void>(async (resolve, reject) => {
     const calendar = google.calendar({version: 'v3', auth});
 
@@ -193,11 +194,11 @@ function updateEvents(auth: any, calendarId: string, updates: { eventId: string,
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  * @returns Promise<unknown>
  */
-function _deleteEventsUpcomingYear(auth, calendarId: string) {
+function _deleteEvents(auth, calendarId: string, start: Date, end: Date) {
   return new Promise<void>((resolve, reject) => {
     const calendar = google.calendar({version: 'v3', auth});
 
-    listEventsUpcomingYear(auth, calendarId)
+    _listEvents(auth, calendarId, start, end)
     .then(async (events) => {
       if (events.length === 0) {
         resolve();
@@ -224,7 +225,7 @@ function _deleteEventsUpcomingYear(auth, calendarId: string) {
   });
 }
 
-function deleteEvents(auth, calendarId: string, eventIds: string[]) {
+function _deleteEventsByIds(auth, calendarId: string, eventIds: string[]) {
   return new Promise<void>(async (resolve, reject) => {
     const calendar = google.calendar({version: 'v3', auth});
 
@@ -248,26 +249,39 @@ function deleteEvents(auth, calendarId: string, eventIds: string[]) {
 /**
  * List upcoming events in the specified calendar. Returns a `Promise`.
  */
-function listEventsUpcomingYear(auth: any, calendarId: string): Promise<calendar_v3.Schema$Event[]>  {
+function _listEvents(
+  auth: any,
+  calendarId: string,
+  start: Date,
+  end: Date,
+  allEvents?: calendar_v3.Schema$Event[],
+  nextPageToken?: string
+): Promise<calendar_v3.Schema$Event[]>  {
   const calendar = google.calendar({version: 'v3', auth});
+  if (!allEvents) allEvents = [];
+
   return new Promise(async (resolve, reject) => {
     try {
-      const now = new Date();
-      // const now = new Date(); now.setFullYear(now.getFullYear() - 1);
-      const inOneYear = new Date(); inOneYear.setFullYear(inOneYear.getFullYear() + 1);
       const res = await calendar.events.list({
         calendarId: calendarId,
-        timeMin: now.toISOString(),
-        timeMax: inOneYear.toISOString(),
+        timeMin: start.toISOString(),
+        timeMax: end.toISOString(),
         singleEvents: true,
-        orderBy: 'startTime'
+        orderBy: 'startTime',
+        pageToken: nextPageToken,
       });
-      if (res.data.nextPageToken !== undefined) {
-        log('-- [WARNING] Only the 1st 250 upcoming events are fetched');
+      res.data.items.forEach((i) => allEvents.push(i));
+      if (res.data.nextPageToken) {
+        resolve(
+          _listEvents(auth, calendarId, start, end, allEvents, res.data.nextPageToken)
+        );
       }
-      resolve(res.data.items);
-    } catch (reject) {
-      return reject(reject);
+      else {
+        resolve(allEvents);
+      }
     }
-  })
+    catch {
+      reject();
+    }
+  });
 }
