@@ -13,15 +13,15 @@ const events = {
   gCal: {
     common: {
       "kind": "calendar#event",
-      "etag": "\"3215214578078000\"",
+      "etag": "\"1234567890012345\"",
       "id": "1234567890987654321234567_20201228T100000Z",
       "status": "confirmed",
       "htmlLink": "https://www.google.com/calendar/event?eid=ABCDEFH",
       "created": "2020-10-25T13:24:57.000Z",
       "updated": "2020-12-23T10:49:51.482Z",
       "summary": "Common GCal event",
-      "description": "Agenda",
-      "creator": { "email": "martin.daniel@airbnb.com" }, "organizer": { "email": "martindaniel4@gmail.com" },
+      "description": "Some important event",
+      "creator": { "email": "person1@gmail.com" }, "organizer": { "email": "person1@gmail.com" },
       "start": { "dateTime": "2020-12-28T11:00:00+01:00", "timeZone": "Europe/Paris" },
       "end": { "dateTime": "2020-12-28T12:00:00+01:00", "timeZone": "Europe/Paris" },
       "recurringEventId": "1234567890987654321234567",
