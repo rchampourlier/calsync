@@ -1,13 +1,14 @@
 import { CalendarEvent, CalendarEventData, eventDataToGCalEvent, extractCalDAVEventData, extractGCalEventData, GCalEvent, isCalDAVEvent, isGCalEvent } from './events';
 import * as sync from './sync';
 import * as fixtures from './testSupport/fixtures';
+import { calsyncFingerprint } from './config';
 
 function mapEventToDataWithDescription(evt: CalendarEvent): CalendarEventData {
   const {eventData, srcId} = (() => {
     if (isGCalEvent(evt)) return { eventData: extractGCalEventData(evt), srcId: evt.id};
     if (isCalDAVEvent(evt)) return { eventData: extractCalDAVEventData(evt), srcId: evt.uid};
   })();
-  eventData.description = `Original ID: ${srcId}`;
+  eventData.description = `Original ID: ${srcId}\n${calsyncFingerprint}`;
   return eventData;
 }
 
@@ -20,7 +21,7 @@ function mapEventToTargetEvent(evt: CalendarEvent): GCalEvent {
 
   const newEvt = eventDataToGCalEvent(eventData);
   newEvt.id = srcId;
-  newEvt.description = `Original ID: ${srcId}`;
+  newEvt.description = `Original ID: ${srcId}\n${calsyncFingerprint}`;
   return newEvt;
 }
 
@@ -142,7 +143,7 @@ describe('ToGCal', () => {
     targetUpdatedEvent.id = 'aaaa_20201228T100000Z';
     // Changing the matching target's event ID to ensure the update API call
     // is done using it's ID and not the one of the matching sources event.
-    targetUpdatedEvent.description = `Original ID: ${updatedGCalEvent.id}`;
+    targetUpdatedEvent.description = `Original ID: ${updatedGCalEvent.id}\n${calsyncFingerprint}`;
     // Adjusting the description so it correctly mentions the original event's ID.
     const targetEvents = [targetUpdatedEvent, mapEventToTargetEvent(fixtures.GetCalDAV('nonTransparent'))];
 
@@ -219,6 +220,21 @@ describe('ToGCal', () => {
       insert: [mapEventToDataWithDescription(fixtures.GetCalDAV('nonAllDay'))],
       update: [{eventId: targetEventToBeUpdated.id, eventData: updateEventData}],
       delete: [fixtures.GetCalDAV('allDay').uid]
+    });
+  });
+
+  test('a target event absent from source without the fingerprint in the description is ignored', () => {
+    const sourcesEvents = [];
+    let targetEvent = fixtures.GetGCal('common');
+    const targetEvents = [targetEvent].map((e) => mapEventToTargetEvent(e));
+    targetEvents[0]['description'] = 'This event should simply be ignored';
+
+    expect(
+      sync.ToGCal(sourcesEvents, targetEvents)
+    ).toStrictEqual({
+      insert: [],
+      update: [],
+      delete: []
     });
   });
 });

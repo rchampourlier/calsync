@@ -3,7 +3,7 @@ import * as config from './config';
 import * as caldav from './caldav/caldav';
 import * as gcal from './gcal/gcal';
 import * as sync from './sync';
-import { log } from './log';
+import { log, logWithEventData, logWithGCalEvent } from './log';
 import { CalendarEvent, isCalDAVEvent, CalDAVEvent } from './events';
 
 const writeToFile = false;
@@ -18,8 +18,10 @@ async function main() {
       await caldav.listEvents(source, start, end) :
       await gcal.listEvents(source, start, end);
     log(`Fetched ${fetchedEvents.length} events for ${source.label}`);
+
     fetchedEvents.forEach((event: CalendarEvent) => {
       // Handling CalDAV recurrent events
+
       if (isCalDAVEvent(event) && event.isRecurring) {
         // Handling recurring CalDAV events
         // Iterate using the recurrenceIterator and create
@@ -63,14 +65,30 @@ async function main() {
 
   if (config.target.kind === 'GCal') {
     const targetEvents = await gcal.listEvents(config.target, start, end);
-    console.log('fetched %d events in target', targetEvents.length);
     if (writeToFile) fs.writeFileSync('./data/targetEvents.json', JSON.stringify(targetEvents));
     const instructions: sync.ToGCalInstructions = sync.ToGCal(sourcesEvents, targetEvents);
 
     log(`Sync: ${instructions.insert.length} inserts, ${instructions.update.length} updates, ${instructions.delete.length} deletions`);
-    await gcal.insertEvents(config.target, instructions.insert);
-    await gcal.updateEvents(config.target, instructions.update);
-    await gcal.deleteEventsByIds(config.target, instructions.delete);
+    if (!config.dryMode) {
+      await gcal.insertEvents(config.target, instructions.insert);
+      await gcal.updateEvents(config.target, instructions.update);
+      await gcal.deleteEventsByIds(config.target, instructions.delete);
+    }
+    else {
+      log(`Insert:`);
+      instructions.insert.forEach((eventData) => {
+        console.log(eventData);
+        logWithEventData(' - ', eventData);
+      });
+      log(`Update:`);
+      instructions.update.forEach((instruction) => {
+        logWithEventData(' - ', instruction.eventData);
+      });
+      log(`Delete:`);
+      instructions.delete.forEach((eventId) => {
+        log(' - ${eventId}');
+      });
+    }
   }
   else throw new Error('NOT IMPLEMENTED YET');
 }

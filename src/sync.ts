@@ -1,5 +1,6 @@
 import { CalendarEvent, CalendarEventData, compareEventsData, eventDataToGCalEvent, extractEventData, extractGCalEventData, GCalEvent, isCalDAVEvent, isGCalEvent } from './events';
 import { NewSummary, ShouldCopy } from './rules';
+import { calsyncFingerprint } from './config';
 
  export type ToGCalInstructions = {
   insert: CalendarEventData[],
@@ -12,7 +13,7 @@ import { NewSummary, ShouldCopy } from './rules';
  * sources' events and target's ones. 
  * 
  * Algorithm:
- *   - Make a map of both sourcesEvents and targetEvents on UID key
+ *   - Makes a map of both sourcesEvents and targetEvents on UID key
  *   - Returns a `SyncInstructions` object where the events in 
  *     insert/update/delete array properties are objects in `sourcesEvents`.
  * 
@@ -36,12 +37,12 @@ export function ToGCal(sourcesEvents: { event: CalendarEvent, redactedSummary: s
     // Search matching event in targetEvents
     const matchingTargetEvt = (() => {
       for (const targetEvt of targetEvents) {
-        if (targetEvt.description.includes(matchingId)) return targetEvt;
+        if (targetEvt.description && targetEvt.description.includes(matchingId)) return targetEvt;
       }
       return undefined;
     })();
 
-    srcEvtData.description = `Original ID: ${matchingId}`;
+    srcEvtData.description = `Original ID: ${matchingId}\n${calsyncFingerprint}`;
 
     // Ignoring events not to be copied
     if (!ShouldCopy(srcEvtData.summary, !!srcEvtData.transparency && srcEvtData.transparency === 'transparent')) continue;
@@ -54,6 +55,7 @@ export function ToGCal(sourcesEvents: { event: CalendarEvent, redactedSummary: s
     else {
       // Match on ID -> update or do nothing
       markedTargetEventIds.push(matchingTargetEvt.id);
+
       if (!compareEventsData(extractGCalEventData(matchingTargetEvt), srcEvtData)) {
         // Not matching on content -> update
         eventsUpdate.push({ eventId: matchingTargetEvt.id, eventData: srcEvtData });
@@ -62,7 +64,12 @@ export function ToGCal(sourcesEvents: { event: CalendarEvent, redactedSummary: s
   }
 
   for (const targetEvt of targetEvents) {
-    if (!markedTargetEventIds.includes(targetEvt.id)) eventsDelete.push(targetEvt.id);
+    if (targetEvt.description && targetEvt.description.includes(calsyncFingerprint) &&
+      !markedTargetEventIds.includes(targetEvt.id)) {
+      // Deleting events which have the calsync fingerprint and have
+      // not been marked (not matched with a source event).
+      eventsDelete.push(targetEvt.id);
+    }
   }
 
   return {

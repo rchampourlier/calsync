@@ -1,7 +1,8 @@
 import { calendar_v3 } from "googleapis"
 import { CalendarEvent } from "./caldav/calendar-event"
+import { CalendarEventData } from "./events"
 
-const Version = '1.1.1';
+const Version = '1.2.0';
 
 function prefix(): string {
   return `v${Version} -- ${(new Date()).toISOString()} -- `;
@@ -10,6 +11,11 @@ function prefix(): string {
 export function log(msg: string, ...args: any[]) {
   if (args.length > 0) console.log(`${prefix()}${msg}`, ...args)
   else console.log(`${prefix()}${msg}`)
+}
+
+export function logWithEventData(msg: string, eventData: CalendarEventData) {
+  const eventStr = `"${eventData.summary}" (${eventData.start.date ? eventData.start.date : eventData.start.dateTime})`;
+  console.log(`${prefix()}${msg} -- ${eventStr}`)
 }
 
 export function logWithCalDAVEvent(msg: string, event: CalendarEvent) {

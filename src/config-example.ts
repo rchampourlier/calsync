@@ -51,3 +51,7 @@ export const target: CalendarDescriptor = {
   label: 'mirror-target',
   id: 'your-calendar-id@group.calendar.google.com'
 };
+
+export const dryMode: boolean = true; 
+export const targetMode: string = 'sync'; // 'sync' or 'mirror'
+export const calsyncFingerprint: string = '[Synced with https://github.com/rchampourlier/calsync]';

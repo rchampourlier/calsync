@@ -158,7 +158,7 @@ function _insertEvents(auth: any, calendarId: string, events: Array<calendar_v3.
         if (LOG_DETAIL) logWithGCalEvent(`Inserted`, evt);
       }
       catch (err) {
-        logWithGCalEvent('Error inserting event', evt);
+        logWithGCalEvent('${err}, inserting event', evt);
       }
     }
     resolve();

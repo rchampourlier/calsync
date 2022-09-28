@@ -5,3 +5,4 @@
 /src/config.ts
 /credentials.json
 /token.json
+**.DS_Store
