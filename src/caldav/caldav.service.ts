@@ -50,9 +50,9 @@ export class CalDAVService {
             '    </C:comp-filter>\n' +
             '  </C:filter>\n' +
             '</C:calendar-query>';
-        const detph = '1';
+        const depth = '1';
         const method = 'REPORT';
-        return this.sendRequest(calendarUrl, username, password, xml, method, detph, true);
+        return this.sendRequest(calendarUrl, username, password, xml, method, depth, true);
     }
 
     findOutIfAnythingChanged(calendarUrl: string, username: string, password: string) {
@@ -67,9 +67,9 @@ export class CalDAVService {
                 </c:comp-filter>
             </c:filter>
         </c:calendar-query>`;
-        const detph = '1';
+        const depth = '1';
         const method = 'REPORT';
-        return this.sendRequest(calendarUrl, username, password, xml, method, detph);
+        return this.sendRequest(calendarUrl, username, password, xml, method, depth);
     }
 
     getCalendarInformation(calendarUrl: string, username: string, password: string) {
@@ -81,9 +81,9 @@ export class CalDAVService {
                 <d:sync-token />
             </d:prop>
         </d:propfind>`;
-        const detph = '0';
+        const depth = '0';
         const method = 'PROPFIND';
-        return this.sendRequest(calendarUrl, username, password, xml, method, detph);
+        return this.sendRequest(calendarUrl, username, password, xml, method, depth);
     }
 
     calendarMultiget(calendarUrl: string, username: string, password: string, eventPaths: string[]) {
@@ -99,9 +99,9 @@ export class CalDAVService {
             </d:prop>
             ${hrefString}
         </c:calendar-multiget>`;
-        const detph = '1';
+        const depth = '1';
         const method = 'PROPFIND';
-        return this.sendRequest(calendarUrl, username, password, xml, method, detph);
+        return this.sendRequest(calendarUrl, username, password, xml, method, depth);
     }
 
     receivingChanges(calendarUrl: string, username: string, password: string, syncUrl: string) {
@@ -113,9 +113,9 @@ export class CalDAVService {
                             <d:getetag/>
                         </d:prop>
                     </d:sync-collection>`;
-        const detph = null;
+        const depth = null;
         const method = 'REPORT';
-        return this.sendRequest(calendarUrl, username, password, xml, method, detph);
+        return this.sendRequest(calendarUrl, username, password, xml, method, depth);
     }
 
     private updateEvent(calendarUrl: string, username: string, password: string, event: CalendarEvent, method: string) {
@@ -156,11 +156,11 @@ export class CalDAVService {
         }
 
 
-        const detph = '1';
-        return this.sendRequest(calendarUrl, username, password, body, method, detph, false, event.uid);
+        const depth = '1';
+        return this.sendRequest(calendarUrl, username, password, body, method, depth, false, event.uid);
     }
 
-    private sendRequest(calendarUrl: string, username: string, password: string, xml: string, method: string, detph: string, isQuery: boolean = false, eventUid: string = ''): Promise<any> {
+    private sendRequest(calendarUrl: string, username: string, password: string, xml: string, method: string, depth: string, isQuery: boolean = false, eventUid: string = ''): Promise<any> {
 
         return new Promise((resolve, reject) => {
             const urlparts = /(https?)\:\/\/(.*?):?(\d*)?(\/.*\/?)/gi.exec(calendarUrl);
@@ -181,7 +181,7 @@ export class CalDAVService {
                     'Content-Length': xml.length,
                     'User-Agent': 'calDavClient',
                     Connection: 'close',
-                    Depth: detph,
+                    Depth: depth,
                     Authorization: ''
                 },
             };

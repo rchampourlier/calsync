@@ -42,7 +42,7 @@ export function ToGCal(sourcesEvents: { event: CalendarEvent, redactedSummary: s
       return undefined;
     })();
 
-    srcEvtData.description = `Original ID: ${matchingId}\n${calsyncFingerprint}`;
+    srcEvtData.description = (srcEvtData.description || '') + `\nOriginal ID: ${matchingId}\n${calsyncFingerprint}`;
 
     // Ignoring events not to be copied
     if (!ShouldCopy(srcEvtData.summary, !!srcEvtData.transparency && srcEvtData.transparency === 'transparent')) continue;
