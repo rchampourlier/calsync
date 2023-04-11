@@ -55,7 +55,8 @@ export function extractCalDAVEventData(evt: CalDAVEvent): CalendarEventData {
     end: (evt.allDayEvent ?
       { date: formatDate(evt.endDate) } : // yyyy-mm-dd format
       { dateTime: evt.endDate.toISOString() }),
-    transparency: evt.iCalendarData.includes('TRANSP:TRANSPARENT') ? 'transparent' : undefined
+    transparency: evt.iCalendarData.includes('TRANSP:TRANSPARENT') ? 'transparent' : undefined,
+    description: evt.description
   };
 }
 

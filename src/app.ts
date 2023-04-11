@@ -33,7 +33,7 @@ async function main() {
         const it = event.recurrenceIterator;
         let nextOccurrence: any;
         while (nextOccurrence = it.next()) {
-          const nextOccurrenceStartDate = new Date(nextOccurrence);
+          const nextOccurrenceStartDate = nextOccurrence.toJSDate();
 
           // Ignoring occurrences which are before the range and
           // stopping the loop once the end of the range has been reached

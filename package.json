@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "googleapis": "^39.2.0",
-    "ical.js": "^1.1.2",
+    "ical.js": "^1.5.0",
     "moment": "^2.12.0",
     "xml2js": "^0.4.17"
   },
