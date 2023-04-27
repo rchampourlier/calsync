@@ -53,6 +53,9 @@ This means you **MUST NOT** use your mirroring target for anything else than pro
 
 - The code is made so you may only connect to one Google account for now, so if you need to access several calendars they must all be accessible from this account. You will have to share calendars from other account with the account you'll use with this project for it to work.
 - The authentication is more complex and you'll need to setup a Google Cloud Platform (GCP) project, download the API credentials and get an OAuth token for accessing your calendar. This is made easy by the code provided by Google and used in this repository but you'll still have to do some setup before. You should follow the steps from [this tutorial](https://developers.google.com/calendar/quickstart/nodejs).
+  - Once you downloaded the credentials JSON file, move it into this directory to `credentials.json`.
+  - If there was any, remove the `token.json` file.
+  - Run the script and follow the inline instructions. This will create a `token.json` file.
 
 **Mirroring mode**
 
@@ -61,7 +64,7 @@ It will **delete all events** before making the copy. The mirror targets should 
 In `src/config.ts`:
 
 ```ts
-export const targetMode: string = 'mirror';
+export const targetMode: string = "mirror";
 ```
 
 **Sync mode**
@@ -71,8 +74,16 @@ Sync mode performs a one-way synchronization, copying events from source calenda
 In `src/config.ts`:
 
 ```ts
-export const targetMode: string = 'sync';
+export const targetMode: string = "sync";
 ```
+
+## How to build it
+
+```sh
+npm run build
+```
+
+The dist files are in `./dist` and the main JS is `./dist/app.js`.
 
 ## How to run it
 
@@ -92,6 +103,22 @@ You may copy `com.champourlier.calsync.plist` to your `$HOME/Library/LaunchAgent
 
 More information on using `launchctl` in [this article](https://alvinalexander.com/mac-os-x/mac-osx-startup-crontab-launchd-jobs/).
 
+## How to run with Docker
+
+A `Dockerfile` is present in the repository.
+
+Build the container:
+
+```sh
+docker build -t calsync .
+```
+
+Run the container:
+
+```sh
+docker run calsync
+```
+
 ## How to make changes
 
 - You may want to do TDD, there are already some tests you may complete or change to fit your needs. Run them with `npm run test`.
@@ -101,13 +128,13 @@ More information on using `launchctl` in [this article](https://alvinalexander.c
 
 Feel free to add issues if you have suggestions, remarks or want to contribute.
 
-## Todos
-
-- [ ] Add a warning before processing in mirroring mode (will delete all events from the target)
-- [ ] Support calendar discovery
-- [ ] Optimize execution by running some things in parallel
-- [x] Reduce footprint by improving the mirroring strategy, avoiding numerous API calls to re-sync events that have already been synced before.
-
 ## Credits
 
 - [Ulrich Tiofack](https://github.com/TheJLifeX) for the [simple-caldav-client](https://github.com/TheJLifeX/simple-caldav-client) source code.
+
+## Release Notes
+
+### `1.3.0`
+
+- Add `Dockerfile` to enable running in Docker.
+- Fix timezone issue (timezone mismatch while syncing from within a Docker container).

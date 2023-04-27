@@ -1,22 +1,28 @@
-import * as fs from 'fs';
-import * as config from './config';
-import * as caldav from './caldav/caldav';
-import * as gcal from './gcal/gcal';
-import * as sync from './sync';
-import { log, logWithEventData, logWithGCalEvent } from './log';
-import { CalendarEvent, isCalDAVEvent, CalDAVEvent } from './events';
+import * as fs from "fs";
+import * as config from "./config";
+import * as caldav from "./caldav/caldav";
+import * as gcal from "./gcal/gcal";
+import * as sync from "./sync";
+import { log, logWithEventData, logWithGCalEvent } from "./log";
+import { CalendarEvent, isCalDAVEvent, CalDAVEvent } from "./events";
 
-const writeToFile = false;
+const WRITE_TO_FILE = process.env["WRITE_TO_FILE"] === "true" ?? false;
+const CLEAN_TARGET = false;
 
 async function main() {
   const start: Date = new Date();
-  const end: Date = new Date(); end.setFullYear(end.getFullYear() + 1);
+  const end: Date = new Date();
+  end.setFullYear(end.getFullYear() + 1);
 
-  const sourcesEvents: { event: CalendarEvent, redactedSummary: string | undefined }[] = [];
+  const sourcesEvents: {
+    event: CalendarEvent;
+    redactedSummary: string | undefined;
+  }[] = [];
   for (const source of config.sources) {
-    const fetchedEvents = source.kind === 'CalDav' ?
-      await caldav.listEvents(source, start, end) :
-      await gcal.listEvents(source, start, end);
+    const fetchedEvents =
+      source.kind === "CalDav"
+        ? await caldav.listEvents(source, start, end)
+        : await gcal.listEvents(source, start, end);
     log(`Fetched ${fetchedEvents.length} events for ${source.label}`);
 
     fetchedEvents.forEach((event: CalendarEvent) => {
@@ -28,69 +34,92 @@ async function main() {
         // events when in the timespan.
         if (event.startDate >= start && event.startDate <= end) {
           // `event` is within the period
-          sourcesEvents.push({ event: event, redactedSummary: source.redactedSummary });
+          sourcesEvents.push({
+            event: event,
+            redactedSummary: source.redactedSummary,
+          });
         }
         const it = event.recurrenceIterator;
         let nextOccurrence: any;
-        while (nextOccurrence = it.next()) {
+        while ((nextOccurrence = it.next())) {
           const nextOccurrenceStartDate = nextOccurrence.toJSDate();
 
           // Ignoring occurrences which are before the range and
           // stopping the loop once the end of the range has been reached
-          if (nextOccurrenceStartDate < start) continue; 
+          if (nextOccurrenceStartDate < start) continue;
           if (nextOccurrenceStartDate > end) break;
 
-          const eventDuration = event.endDate.getTime() - event.startDate.getTime();
+          const eventDuration =
+            event.endDate.getTime() - event.startDate.getTime();
           const nextOccurrenceEndDate = new Date();
-          nextOccurrenceEndDate.setTime(nextOccurrenceStartDate.getTime() + eventDuration);
+          nextOccurrenceEndDate.setTime(
+            nextOccurrenceStartDate.getTime() + eventDuration
+          );
           const nextOccurrenceEvent: CalDAVEvent = {
             ...event,
             uid: `${event.uid}-${nextOccurrenceStartDate.getTime()}`,
             startDate: nextOccurrenceStartDate,
             endDate: nextOccurrenceEndDate,
           };
-          sourcesEvents.push({ event: nextOccurrenceEvent, redactedSummary: source.redactedSummary});
+          sourcesEvents.push({
+            event: nextOccurrenceEvent,
+            redactedSummary: source.redactedSummary,
+          });
         }
         // We skip the push below since we only want to push
         // the instances within the selected period for CalDAV
-        // recurrent events. The CalDAV API returns the initial 
+        // recurrent events. The CalDAV API returns the initial
         // event (which may be before the fetched period) if
         // some instances are within the fetched period.
         return;
       }
-      sourcesEvents.push({ event: event, redactedSummary: source.redactedSummary });
+      sourcesEvents.push({
+        event,
+        redactedSummary: source.redactedSummary,
+      });
     });
   }
-  if (writeToFile) fs.writeFileSync('./data/sourcesEvents.json', JSON.stringify(sourcesEvents));
+  if (WRITE_TO_FILE)
+    fs.writeFileSync(
+      "./data/sourcesEvents.json",
+      JSON.stringify(sourcesEvents)
+    );
 
-  if (config.target.kind === 'GCal') {
+  if (config.target.kind === "GCal") {
     const targetEvents = await gcal.listEvents(config.target, start, end);
-    if (writeToFile) fs.writeFileSync('./data/targetEvents.json', JSON.stringify(targetEvents));
-    const instructions: sync.ToGCalInstructions = sync.ToGCal(sourcesEvents, targetEvents);
+    if (WRITE_TO_FILE)
+      fs.writeFileSync(
+        "./data/targetEvents.json",
+        JSON.stringify(targetEvents)
+      );
+    const instructions: sync.SyncToGCalInstructions = sync.toGCal(
+      sourcesEvents,
+      targetEvents
+    );
 
-    log(`Sync: ${instructions.insert.length} inserts, ${instructions.update.length} updates, ${instructions.delete.length} deletions`);
+    log(
+      `Sync: ${instructions.insert.length} inserts, ${instructions.update.length} updates, ${instructions.delete.length} deletions`
+    );
     if (!config.dryMode) {
       await gcal.insertEvents(config.target, instructions.insert);
       await gcal.updateEvents(config.target, instructions.update);
       await gcal.deleteEventsByIds(config.target, instructions.delete);
-    }
-    else {
+    } else {
       log(`Insert:`);
       instructions.insert.forEach((eventData) => {
         console.log(eventData);
-        logWithEventData(' - ', eventData);
+        logWithEventData(" - ", eventData);
       });
       log(`Update:`);
       instructions.update.forEach((instruction) => {
-        logWithEventData(' - ', instruction.eventData);
+        logWithEventData(" - ", instruction.eventData);
       });
       log(`Delete:`);
       instructions.delete.forEach((eventId) => {
-        log(' - ${eventId}');
+        log(` - ${eventId}`);
       });
     }
-  }
-  else throw new Error('NOT IMPLEMENTED YET');
+  } else throw new Error("NOT IMPLEMENTED YET");
 }
 
 async function cleanTarget() {
@@ -105,7 +134,9 @@ async function cleanTarget() {
 
 try {
   main();
-  // cleanTarget();
+  if (CLEAN_TARGET) {
+    cleanTarget();
+  }
 } catch (err) {
-  log('Error: ' + err);
+  log("Error: " + err);
 }
