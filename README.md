@@ -80,7 +80,7 @@ export const targetMode: string = "sync";
 ## How to build it
 
 ```sh
-npm run build
+yarn build
 ```
 
 The dist files are in `./dist` and the main JS is `./dist/app.js`.
@@ -94,7 +94,7 @@ scripts/run.sh
 or in development:
 
 ```
-npm run app
+yarn app
 ```
 
 ## How to automate running recurrently
@@ -121,7 +121,7 @@ docker run calsync
 
 ## How to make changes
 
-- You may want to do TDD, there are already some tests you may complete or change to fit your needs. Run them with `npm run test`.
+- You may want to do TDD, there are already some tests you may complete or change to fit your needs. Run them with `yarn test`.
 - If you want to change the **sync** algorithm, it happens in `src/sync.ts`.
 
 ## Contribution
