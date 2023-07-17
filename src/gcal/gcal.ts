@@ -158,7 +158,7 @@ function _insertEvents(auth: any, calendarId: string, events: Array<calendar_v3.
         if (LOG_DETAIL) logWithGCalEvent(`Inserted`, evt);
       }
       catch (err) {
-        logWithGCalEvent('${err}, inserting event', evt);
+        logWithGCalEvent(`${err}, inserting event`, evt);
       }
     }
     resolve();
@@ -280,8 +280,8 @@ function _listEvents(
         resolve(allEvents);
       }
     }
-    catch {
-      reject();
+    catch (error) {
+      reject(`Failed to list gcal events. Error: ${error}`);
     }
   });
 }
