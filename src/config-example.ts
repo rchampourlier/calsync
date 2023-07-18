@@ -56,4 +56,4 @@ export const dryMode: boolean = true;
 export const targetMode: string = 'sync'; // 'sync' or 'mirror'
 export const calsyncFingerprint: string = '[Synced with https://github.com/rchampourlier/calsync]';
 // How many days in the future to sync events. Default to sync for a year.
-export const daysToSync: int = 365;
+export const daysToSync: number = 365;
