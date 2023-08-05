@@ -12,7 +12,7 @@ const CLEAN_TARGET = false;
 async function main() {
   const start: Date = new Date();
   const end: Date = new Date();
-  end.setFullYear(end.getFullYear() + 1);
+  end.setDate(end.getDate() + config.daysToSync);
 
   const sourcesEvents: {
     event: CalendarEvent;
