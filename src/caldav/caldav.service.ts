@@ -297,7 +297,7 @@ export class CalDAVService {
             attendees,
             isRecurring: event.isRecurring(),
             recurrenceId: event.recurrenceId,
-            recurrenceIterator: event.iterator(),
+            recurrenceIterator: new RecurrenceIterator(event),
             allDayEvent: this.isAllDayEvent(duration),
             tzid,
             iCalendarData: iCalData
@@ -308,5 +308,23 @@ export class CalDAVService {
 
     private isAllDayEvent(duration: CalendarEventDuration) {
         return duration.days === 1 && duration.hours === 0 && duration.minutes === 0 && duration.seconds === 0 && duration.weeks === 0;
+    }
+}
+
+
+class RecurrenceIterator{
+    /**
+     * An iterator of recurrent events. It uses getOccurrenceDetails to correctly handle exceptions.
+     */
+    _event = null;
+    _iter = null;
+
+    public constructor(event: ICAL.event) {
+      this._event = event;
+      this._iter = event.iterator();
+    }
+
+    public next() {
+      return this._event.getOccurrenceDetails(this._iter.next());
     }
 }

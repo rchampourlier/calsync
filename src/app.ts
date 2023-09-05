@@ -42,7 +42,7 @@ async function main() {
         const it = event.recurrenceIterator;
         let nextOccurrence: any;
         while ((nextOccurrence = it.next())) {
-          const nextOccurrenceStartDate = nextOccurrence.toJSDate();
+          const nextOccurrenceStartDate = nextOccurrence.startDate.toJSDate();
 
           // Ignoring occurrences which are before the range and
           // stopping the loop once the end of the range has been reached
@@ -51,10 +51,7 @@ async function main() {
 
           const eventDuration =
             event.endDate.getTime() - event.startDate.getTime();
-          const nextOccurrenceEndDate = new Date();
-          nextOccurrenceEndDate.setTime(
-            nextOccurrenceStartDate.getTime() + eventDuration
-          );
+          const nextOccurrenceEndDate = nextOccurrence.endDate.toJSDate();
           const nextOccurrenceEvent: CalDAVEvent = {
             ...event,
             uid: `${event.uid}-${nextOccurrenceStartDate.getTime()}`,
