@@ -221,11 +221,11 @@ export class CalDAVService {
                             if (err) {
                                 throw err;
                             }
-                            const data = result['d:multistatus']['d:response'];
+                            const data = result['D:multistatus']['D:response'];
                             const resultEvents: CalendarEvent[] = [];
                             if (data) {
                                 data.forEach((eventXML) => {
-                                    const iCalendarData = eventXML['d:propstat'][0]['d:prop'][0]['cal:calendar-data'][0];
+                                    const iCalendarData = eventXML['D:propstat'][0]['D:prop'][0]['C:calendar-data'][0]['_'];
                                     const calendarEvent = this.parseToCalendarEvent(iCalendarData);
                                     resultEvents.push(calendarEvent);
                                 });
@@ -325,6 +325,10 @@ class RecurrenceIterator{
     }
 
     public next() {
-      return this._event.getOccurrenceDetails(this._iter.next());
+      const next = this._iter.next();
+      if (next)
+        return this._event.getOccurrenceDetails(next);
+      else
+        return false;
     }
 }
