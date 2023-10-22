@@ -114,9 +114,11 @@ docker build -t calsync .
 ```
 
 Run the container:
+It is important to set the TZ environment variable to the timezone your caldav calendar is in. Otherwise you will see target events shifted by your timezone difference to utc.
+The below command will set TZ to the timezone of your docker host. 
 
 ```sh
-docker run calsync
+docker run -e TZ="$(cat /etc/timezone)" calsync
 ```
 
 ## How to make changes
