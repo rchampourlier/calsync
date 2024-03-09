@@ -221,14 +221,21 @@ export class CalDAVService {
                             if (err) {
                                 throw err;
                             }
-                            const data = result['d:multistatus']['d:response'];
+                            const data = result['multistatus']['response']
+                            // For non-iCloud WebCalDAV servers, the response is different
+                            // and the data may be accessed using 
+                            // `result['d:multistatus']['d:response']` instead.
                             const resultEvents: CalendarEvent[] = [];
                             if (data) {
-                                data.forEach((eventXML) => {
-                                    const iCalendarData = eventXML['d:propstat'][0]['d:prop'][0]['cal:calendar-data'][0];
-                                    const calendarEvent = this.parseToCalendarEvent(iCalendarData);
+                                data.forEach((eventData: any) => {
+                                    const iCalendarData = eventData['propstat'][0]['prop'][0]['calendar-data'][0];
+                                    const calendarEvent = this.parseToCalendarEvent(iCalendarData._);
+                                    // When accessing the data with `result['multistatus']['response']`
+                                    // for iCloud, `iCalendarData._` must be passed instead of 
+                                    // just `iCalendarData` to avoid a parser error.
                                     resultEvents.push(calendarEvent);
-                                });
+                                })
+                                    ;
                             }
                             resolve(resultEvents);
                         });
@@ -312,7 +319,7 @@ export class CalDAVService {
 }
 
 
-class RecurrenceIterator{
+class RecurrenceIterator {
     /**
      * An iterator of recurrent events. It uses getOccurrenceDetails to correctly handle exceptions.
      */
@@ -320,11 +327,11 @@ class RecurrenceIterator{
     _iter = null;
 
     public constructor(event: ICAL.event) {
-      this._event = event;
-      this._iter = event.iterator();
+        this._event = event;
+        this._iter = event.iterator();
     }
 
     public next() {
-      return this._event.getOccurrenceDetails(this._iter.next());
+        return this._event.getOccurrenceDetails(this._iter.next());
     }
 }
