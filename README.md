@@ -49,6 +49,8 @@ This means you **MUST NOT** use your mirroring target for anything else than pro
 - You will have to find the Calendar URL. You may look at [these instructions](https://help.runbox.com/using-a-calendar-client-with-caldav/) from Runbox on how to connect Thunderbird Lightning to a CalDAV server, you'll have to do the same to find the calendar's URL (in short, navigate in your browser to [](caldav.<replace-with-your-hosting-domain.com>)).
 - You will have to add in the `config.ts` file your CalDAV account credentials. This will probably be your username and password.
 
+NB: the code has been adjusted to work with iCloud (commit `7c18c75481e85d8eb034babee28862b9a9d06514`). This may have broken compatibility with other CalDAV servers, so you may want to check the commit's change to restore it if you need to.
+
 **Google Calendar calendars**
 
 - The code is made so you may only connect to one Google account for now, so if you need to access several calendars they must all be accessible from this account. You will have to share calendars from other account with the account you'll use with this project for it to work.
