@@ -53,11 +53,11 @@ NB: the code has been adjusted to work with iCloud (commit `7c18c75481e85d8eb034
 
 **Google Calendar calendars**
 
-- The code is made so you may only connect to one Google account for now, so if you need to access several calendars they must all be accessible from this account. You will have to share calendars from other account with the account you'll use with this project for it to work.
-- The authentication is more complex and you'll need to setup a Google Cloud Platform (GCP) project, download the API credentials and get an OAuth token for accessing your calendar. This is made easy by the code provided by Google and used in this repository but you'll still have to do some setup before. You should follow the steps from [this tutorial](https://developers.google.com/calendar/quickstart/nodejs).
-  - Once you downloaded the credentials JSON file, move it into this directory to `credentials.json`.
-  - If there was any, remove the `token.json` file.
-  - Run the script and follow the inline instructions. This will create a `token.json` file.
+The authentication is more complex and you'll need to setup a Google Cloud Platform (GCP) project, download the API credentials and get an OAuth token for accessing your calendar. This is made easy by the code provided by Google and used in this repository but you'll still have to do some setup before. You should follow the steps from [this tutorial](https://developers.google.com/calendar/quickstart/nodejs).
+
+- Once you downloaded the credentials JSON file, move it into this directory to `credentials.json`.
+- If there was any, remove the `token.json` file.
+- Run the script and follow the inline instructions. This will create a `token.json` file.
 
 **Mirroring mode**
 
@@ -135,6 +135,13 @@ Feel free to add issues if you have suggestions, remarks or want to contribute.
 - [Ulrich Tiofack](https://github.com/TheJLifeX) for the [simple-caldav-client](https://github.com/TheJLifeX/simple-caldav-client) source code.
 
 ## Release Notes
+
+### `1.4.0`
+
+- Add support for multiple Google Calendar accounts.
+- Updated for iCloud (replaces the previous CalDAV standard implementation that may not work anymore).
+- Fixed bugs, with the help of `ppwwyyxx`.
+- Updated to Node 20 and fixed Docker.
 
 ### `1.3.0`
 
